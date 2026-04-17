@@ -1,6 +1,18 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { testimonials as initialTestimonials } from '../data/mockData';
-import { supabase } from '../supabase';
+import { db, handleFirestoreError, OperationType } from '../firebase';
+import { useAuth } from './AuthContext';
+import { 
+  collection, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  query, 
+  onSnapshot,
+  orderBy,
+  writeBatch
+} from 'firebase/firestore';
 
 export type Testimonial = {
   id: string;
@@ -23,72 +35,71 @@ const TestimonialContext = createContext<TestimonialContextType | undefined>(und
 export function TestimonialProvider({ children }: { children: ReactNode }) {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const fetchTestimonials = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('testimonials')
-      .select('*')
-      .order('id', { ascending: true });
-
-    if (!error && data) {
-      if (data.length === 0) {
-        // Seed initial data
-        const seedData = initialTestimonials.map(({ id, ...rest }) => ({ ...rest }));
-        const { data: seededData, error: seedError } = await supabase
-          .from('testimonials')
-          .insert(seedData)
-          .select();
-        
-        if (!seedError && seededData) {
-          setTestimonials(seededData as any);
-        }
-      } else {
-        setTestimonials(data as any);
-      }
-    }
-    setLoading(false);
-  };
+  const { user } = useAuth();
 
   useEffect(() => {
-    fetchTestimonials();
-  }, []);
+    setLoading(true);
+    const path = 'testimonials';
+    const testimonialsCol = collection(db, path);
+    const q = query(testimonialsCol, orderBy('id', 'asc'));
+
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      if (snapshot.empty) {
+        // Seed initial data if Firestore is empty AND user is admin
+        if (user?.role === 'admin') {
+          const batch = writeBatch(db);
+          initialTestimonials.forEach((t) => {
+            const newDocRef = doc(testimonialsCol);
+            batch.set(newDocRef, {
+              ...t,
+              id: newDocRef.id
+            });
+          });
+          await batch.commit();
+        } else {
+          setTestimonials([]);
+          setLoading(false);
+        }
+      } else {
+        const testimonialsList = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        } as Testimonial));
+        setTestimonials(testimonialsList);
+        setLoading(false);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, path);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   const addTestimonial = async (testimonial: Omit<Testimonial, 'id'>) => {
-    const { error } = await supabase
-      .from('testimonials')
-      .insert([testimonial]);
-
-    if (error) {
-      console.error('Error adding testimonial:', error.message);
-    } else {
-      fetchTestimonials();
+    const path = 'testimonials';
+    try {
+      await addDoc(collection(db, path), testimonial);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, path);
     }
   };
 
   const updateTestimonial = async (id: string, updatedTestimonial: Omit<Testimonial, 'id'>) => {
-    const { error } = await supabase
-      .from('testimonials')
-      .update(updatedTestimonial)
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error updating testimonial:', error.message);
-    } else {
-      fetchTestimonials();
+    const path = `testimonials/${id}`;
+    try {
+      await updateDoc(doc(db, 'testimonials', id), updatedTestimonial);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, path);
     }
   };
 
   const removeTestimonial = async (id: string) => {
-    const { error } = await supabase
-      .from('testimonials')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error removing testimonial:', error.message);
-    } else {
-      fetchTestimonials();
+    const path = `testimonials/${id}`;
+    try {
+      await deleteDoc(doc(db, 'testimonials', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, path);
     }
   };
 

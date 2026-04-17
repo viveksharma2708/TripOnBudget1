@@ -28,24 +28,16 @@ export default function Auth() {
       if (view === 'login') {
         const result = await login(email, password);
         if (!result.success) {
-          // Handle common cryptic Supabase errors explicitly
-          if (result.error?.includes('Invalid login credentials')) {
-            setError('Invalid email or password. If you just signed up, make sure you confirmed your email!');
-          } else {
-            setError(result.error || 'Invalid email or password');
-          }
+          setError(result.error || 'Invalid credentials. Please check your email and password.');
           setIsSubmitting(false);
           return;
         }
         
         const returnTo = location.state?.returnTo || '/';
         
-        if (returnTo === '/admin' && !email.includes('admin')) {
-          setError('Access denied: Admin role required to access this route.');
-          logout();
-          setIsSubmitting(false);
-          return;
-        }
+        // Let the useEffect in App or AuthContext handle the role check, or do it here properly
+        // But for now, let's just use the result data if it's available or wait for session.
+        // Actually the 'login' function does fetchProfile.
         
         setIsSubmitting(false);
         setSuccessMsg('Login successful! Redirecting...');

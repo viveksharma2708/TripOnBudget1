@@ -1,6 +1,14 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '../supabase';
-import { User as SupabaseUser } from '@supabase/supabase-js';
+import { auth, db, handleFirestoreError, OperationType } from '../firebase';
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  User as FirebaseUser
+} from 'firebase/auth';
+import { doc, setDoc, getDoc, collection, getDocs } from 'firebase/firestore';
 
 export type User = {
   id: string;
@@ -28,143 +36,81 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let isMounted = true;
-
-    // Safety timeout - if Supabase takes longer than 3 seconds to respond, force UI to show
-    const fallbackTimeout = setTimeout(() => {
-      if (isMounted) setLoading(false);
-    }, 3000);
-
-    // Check active sessions and sets the user
-    const getSession = async () => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          console.error("Auth session error:", error.message);
-        }
-        if (session?.user && isMounted) {
-          await fetchProfile(session.user);
-        }
-      } catch (err) {
-        console.error("Critical error getting session:", err);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-          clearTimeout(fallbackTimeout);
-        }
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        await fetchProfile(firebaseUser);
+      } else {
+        setUser(null);
       }
-    };
-
-    getSession();
-
-    // Listen for changes on auth state (logged in, signed out, etc.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      try {
-        if (session?.user) {
-          await fetchProfile(session.user);
-        } else {
-          if (isMounted) setUser(null);
-        }
-      } catch (err) {
-         console.error("Auth state change error:", err);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-          clearTimeout(fallbackTimeout);
-        }
-      }
+      setLoading(false);
     });
 
-    return () => {
-      isMounted = false;
-      clearTimeout(fallbackTimeout);
-      subscription.unsubscribe();
-    };
+    return () => unsubscribe();
   }, []);
 
-  const fetchProfile = async (supabaseUser: SupabaseUser) => {
+  const fetchProfile = async (firebaseUser: FirebaseUser) => {
+    const path = `users/${firebaseUser.uid}`;
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', supabaseUser.id)
-        .single();
-
-      if (error && error.code === 'PGRST116') {
-        // Profile doesn't exist yet, it's a new signup
-        // Usually handled in signup, but fallback here
-        const newProfile = {
-          id: supabaseUser.id,
-          name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
-          email: supabaseUser.email || '',
-          role: (supabaseUser.email?.includes('admin') || supabaseUser.email === 'padatvivek2@gmail.com') ? 'admin' : 'user',
-          join_date: new Date().toISOString()
-        };
-        
-        const { data: createdProfile, error: createError } = await supabase
-          .from('profiles')
-          .insert([newProfile])
-          .select()
-          .single();
-
-        if (!createError && createdProfile) {
-          setUser({
-            id: createdProfile.id,
-            name: createdProfile.name,
-            email: createdProfile.email,
-            role: createdProfile.role as 'admin' | 'user',
-            joinDate: createdProfile.join_date
-          });
-        } else {
-          // Fallback just in case RLS blocked the insert - don't leave the UI dead
-          console.error("Profile insert failed, falling back to local state:", createError);
-          setUser({
-            id: newProfile.id,
-            name: newProfile.name,
-            email: newProfile.email,
-            role: newProfile.role as 'admin' | 'user',
-            joinDate: newProfile.join_date
-          });
-        }
-      } else if (!error && data) {
+      const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+      
+      if (userDoc.exists()) {
+        const data = userDoc.data();
         setUser({
-          id: data.id,
-          name: data.name,
-          email: data.email,
+          id: firebaseUser.uid,
+          name: data.name || firebaseUser.email?.split('@')[0] || 'User',
+          email: firebaseUser.email || '',
           role: data.role as 'admin' | 'user',
-          joinDate: data.join_date
+          joinDate: data.joinDate || new Date().toISOString()
         });
       } else {
-        // Fallback for ANY OTHER database error (e.g. table does not exist)
-        console.error("Profile fetch completely failed, bypassing database lock:", error);
-        setUser({
-          id: supabaseUser.id,
-          name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
-          email: supabaseUser.email || '',
-          role: (supabaseUser.email?.includes('admin') || supabaseUser.email === 'padatvivek2@gmail.com') ? 'admin' : 'user',
+        console.warn('Profile doc missing. Re-creating.');
+        const emailStr = firebaseUser.email || '';
+        const roleStr = (emailStr === 'padatvivek2@gmail.com' || emailStr === 'vivek5656sharma@gmail.com') ? 'admin' : 'user';
+        const newUserObj: User = {
+          id: firebaseUser.uid,
+          name: emailStr.split('@')[0] || 'User',
+          email: emailStr,
+          role: roleStr,
           joinDate: new Date().toISOString()
-        });
+        };
+        await setDoc(doc(db, 'users', firebaseUser.uid), newUserObj);
+        setUser(newUserObj);
       }
-    } catch (err) {
-      console.error('Error fetching profile:', err);
+    } catch (e) {
+      if (e instanceof Error && e.message.includes('permission')) {
+        handleFirestoreError(e, OperationType.GET, path);
+      }
+      console.error('Error fetching profile:', e);
+      // Fallback
+      setUser({
+         id: firebaseUser.uid,
+         name: firebaseUser.email?.split('@')[0] || 'User',
+         email: firebaseUser.email || '',
+         role: (firebaseUser.email === 'padatvivek2@gmail.com' || firebaseUser.email === 'vivek5656sharma@gmail.com') ? 'admin' : 'user',
+         joinDate: new Date().toISOString()
+      });
     }
   };
 
   useEffect(() => {
     if (user?.role === 'admin') {
       const fetchUsers = async () => {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*');
-        
-        if (!error && data) {
-          setAllUsers(data.map(u => ({
-            id: u.id,
-            name: u.name,
-            email: u.email,
-            role: u.role as 'admin' | 'user',
-            joinDate: u.join_date
-          })));
+        const path = 'users';
+        try {
+          const snapshot = await getDocs(collection(db, path));
+          const usersList = snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              name: data.name,
+              email: data.email,
+              role: data.role,
+              joinDate: data.joinDate
+            } as User;
+          });
+          setAllUsers(usersList);
+        } catch (e) {
+          handleFirestoreError(e, OperationType.LIST, path);
         }
       };
       
@@ -173,110 +119,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const login = async (email: string, password?: string): Promise<{success: boolean; error?: string}> => {
+    if (!password) return { success: false, error: 'Password is required' };
+    
     try {
-      if (!password) return { success: false, error: 'Password is required' };
-      
-      // Attempt login
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) {
-        console.error('Login error:', error.message);
-        return { success: false, error: error.message };
-      }
-      
-      if (data.user) {
-        // We set a raw timer so it doesn't await a hung promise
-        fetchProfile(data.user);
-        
-        // As a hard bypass, just force the return so the UI updates
-        return { success: true };
-      }
-      return { success: false, error: 'Unknown login error' };
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      await fetchProfile(userCredential.user);
+      return { success: true };
     } catch (err: any) {
-      console.error('Fatal Login Exception:', err);
-      // Supabase's network/CORS crashes are usually thrown instead of returned in error
-      return { success: false, error: 'Cannot connect to Supabase. Please ensure your VITE_SUPABASE_ANON_KEY is correct in settings.' };
+      let errorMsg = 'Invalid email or password. Please try again or create an account.';
+      
+      if (err.code === 'auth/invalid-credential') {
+        errorMsg = 'Incorrect email or password. If you haven\'t created an account yet, please sign up.';
+      } else if (err.code === 'auth/user-not-found') {
+        errorMsg = 'No account found with this email. Please sign up first.';
+      } else if (err.code === 'auth/wrong-password') {
+        errorMsg = 'Incorrect password. Please try again.';
+      } else if (err.code === 'auth/too-many-requests') {
+        errorMsg = 'Too many failed login attempts. Please try again later.';
+      } else {
+        console.error('Firebase login error:', err);
+      }
+      
+      return { success: false, error: errorMsg };
     }
   };
 
   const signup = async (email: string, name: string, password?: string): Promise<{success: boolean; error?: string; requiresEmail?: boolean}> => {
+    if (!password) return { success: false, error: 'Password is required' };
+    
     try {
-      if (!password) return { success: false, error: 'Password is required' };
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            name,
-          }
-        }
-      });
-
-      if (error) {
-        console.error('Signup error:', error.message);
-        return { success: false, error: error.message };
+      const roleStr = (email === 'padatvivek2@gmail.com' || email === 'vivek5656sharma@gmail.com') ? 'admin' : 'user';
+      const newUserObj: User = {
+        id: userCredential.user.uid,
+        name: name,
+        email: email,
+        role: roleStr,
+        joinDate: new Date().toISOString()
+      };
+      
+      // Save profile in Firestore
+      const path = `users/${userCredential.user.uid}`;
+      try {
+        await setDoc(doc(db, 'users', userCredential.user.uid), newUserObj);
+      } catch (e) {
+        handleFirestoreError(e, OperationType.WRITE, path);
       }
-
-      if (data.user) {
-        // Check if the user was just created or if they already exist but tried signing up again
-        // Supabase responds with identites=[] if the user already exists and email confirmations are enabled
-        if (data.user.identities && data.user.identities.length === 0) {
-          return { success: false, error: 'User already registered' };
-        }
-
-        // If email confirmation is required, Supabase will not return a session on sign up
-        const requiresConfirmation = !data.session;
-
-        if (requiresConfirmation) {
-          return { success: true, requiresEmail: true };
-        }
-
-        // If they got logged in immediately, create the profile
-        const newProfile = {
-          id: data.user.id,
-          name,
-          email,
-          role: (email.includes('admin') || email === 'padatvivek2@gmail.com') ? 'admin' : 'user',
-          join_date: new Date().toISOString()
-        };
-
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([newProfile]);
-
-        if (profileError) {
-          console.error('Profile creation error:', profileError.message);
-        }
-        
-        fetchProfile(data.user);
-        return { success: true, requiresEmail: false };
-      }
-      return { success: false, error: 'Unknown signup error' };
+      
+      setUser(newUserObj);
+      return { success: true, requiresEmail: false };
     } catch (err: any) {
-      console.error('Fatal Signup Exception:', err);
-      return { success: false, error: 'Cannot connect to Supabase. Check VITE_SUPABASE_ANON_KEY in settings.' };
+      console.error('Firebase signup error:', err);
+      let errorMsg = err.message;
+      if (err.code === 'auth/email-already-in-use') errorMsg = 'Email is already registered';
+      return { success: false, error: errorMsg };
     }
   };
 
   const resetPassword = async (email: string) => {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth?view=update-password`,
-    });
-    
-    if (error) {
-      console.error('Reset password error:', error.message);
+    try {
+      await sendPasswordResetEmail(auth, email);
+      return true;
+    } catch (e) {
+      console.error("Password reset error:", e);
       return false;
     }
-    return true;
   };
 
   const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) console.error('Logout error:', error.message);
+    await signOut(auth);
     setUser(null);
   };
 
@@ -285,7 +197,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       {loading ? (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
-          <p className="text-gray-500 font-medium">Connecting to Supabase...</p>
+          <p className="text-gray-500 font-medium">Connecting to Firebase...</p>
         </div>
       ) : (
         children
@@ -299,3 +211,4 @@ export const useAuth = () => {
   if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 };
+

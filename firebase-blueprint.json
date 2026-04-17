@@ -1,0 +1,88 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "joinDate": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "email", "role"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "Trip booking details",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "userEmail": { "type": "string" },
+        "packageId": { "type": "string" },
+        "packageTitle": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "travelers": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "packageId", "date", "travelers", "status"]
+    },
+    "Inquiry": {
+      "title": "Inquiry",
+      "description": "Contact form inquiry",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "subject": { "type": "string" },
+        "message": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "email", "subject", "message"]
+    },
+    "Package": {
+      "title": "Travel Package",
+      "description": "Travel package available for booking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "location": { "type": "string" }
+      },
+      "required": ["title", "price"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/bookings/{bookingId}": {
+      "schema": "Booking",
+      "description": "User bookings"
+    },
+    "/inquiries/{inquiryId}": {
+      "schema": "Inquiry",
+      "description": "Contact inquiries"
+    },
+    "/packages/{packageId}": {
+      "schema": "Package",
+      "description": "Travel packages"
+    },
+    "/gallery/{itemId}": {
+      "schema": "object",
+      "description": "Gallery items"
+    },
+    "/testimonials/{testimonialId}": {
+      "schema": "object",
+      "description": "Customer testimonials"
+    }
+  }
+}

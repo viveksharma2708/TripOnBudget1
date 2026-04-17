@@ -1,6 +1,18 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { packages as initialPackages } from '../data/mockData';
-import { supabase } from '../supabase';
+import { db, handleFirestoreError, OperationType } from '../firebase';
+import { useAuth } from './AuthContext';
+import { 
+  collection, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  query, 
+  onSnapshot,
+  orderBy,
+  writeBatch
+} from 'firebase/firestore';
 
 export type Package = typeof initialPackages[0];
 
@@ -17,95 +29,77 @@ const PackageContext = createContext<PackageContextType | undefined>(undefined);
 export function PackageProvider({ children }: { children: ReactNode }) {
   const [packages, setPackages] = useState<Package[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const fetchPackages = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('packages')
-      .select('*')
-      .order('id', { ascending: true });
-
-    if (!error && data) {
-      if (data.length === 0) {
-        // Seed initial data
-        const seedData = initialPackages.map(({ id, ...rest }) => ({
-          title: rest.title,
-          location: rest.location,
-          duration: rest.duration,
-          price: rest.price,
-          originalPrice: rest.originalPrice,
-          image: rest.image,
-          category: rest.category,
-          rating: rest.rating,
-          reviews: rest.reviews,
-          description: rest.description,
-          itinerary: rest.itinerary,
-          inclusions: rest.inclusions,
-          exclusions: rest.exclusions,
-          gallery: rest.gallery,
-          video: rest.video
-        }));
-        
-        const { data: seededData, error: seedError } = await supabase
-          .from('packages')
-          .insert(seedData)
-          .select();
-        
-        if (!seedError && seededData) {
-          setPackages(seededData as any);
-        }
-      } else {
-        setPackages(data as any);
-      }
-    }
-    setLoading(false);
-  };
+  const { user } = useAuth();
 
   useEffect(() => {
-    fetchPackages();
-  }, []);
+    setLoading(true);
+    const path = 'packages';
+    const packagesCol = collection(db, path);
+    const q = query(packagesCol, orderBy('price', 'asc'));
+
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      if (snapshot.empty) {
+        // Seed initial data if Firestore is empty AND user is admin
+        if (user?.role === 'admin') {
+          const batch = writeBatch(db);
+          initialPackages.forEach((pkg) => {
+            const newDocRef = doc(packagesCol);
+            batch.set(newDocRef, {
+              ...pkg,
+              id: newDocRef.id
+            });
+          });
+          await batch.commit();
+        } else {
+          setPackages([]);
+          setLoading(false);
+        }
+      } else {
+        const packagesList = snapshot.docs.map(doc => ({
+          ...doc.data(),
+          id: doc.id
+        } as Package));
+        setPackages(packagesList);
+        setLoading(false);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, path);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   const addPackage = async (pkg: Omit<Package, 'id'>) => {
-    const { error } = await supabase
-      .from('packages')
-      .insert([pkg]);
-
-    if (error) {
-      console.error('Error adding package:', error.message);
-    } else {
-      fetchPackages();
+    const path = 'packages';
+    try {
+      await addDoc(collection(db, path), pkg);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, path);
     }
   };
 
   const updatePackage = async (id: string, updatedPkg: Omit<Package, 'id'>) => {
-    const { error } = await supabase
-      .from('packages')
-      .update(updatedPkg)
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error updating package:', error.message);
-    } else {
-      fetchPackages();
+    const path = `packages/${id}`;
+    try {
+      await updateDoc(doc(db, 'packages', id), updatedPkg);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, path);
     }
   };
 
   const removePackage = async (id: string) => {
-    const { error } = await supabase
-      .from('packages')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error removing package:', error.message);
-    } else {
-      fetchPackages();
+    const path = `packages/${id}`;
+    try {
+      await deleteDoc(doc(db, 'packages', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, path);
     }
   };
 
   return (
     <PackageContext.Provider value={{ packages, addPackage, updatePackage, removePackage, loading }}>
-      {children}
+        {children}
     </PackageContext.Provider>
   );
 }

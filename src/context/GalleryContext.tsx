@@ -1,5 +1,17 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '../supabase';
+import { db, handleFirestoreError, OperationType } from '../firebase';
+import { useAuth } from './AuthContext';
+import { 
+  collection, 
+  addDoc, 
+  updateDoc, 
+  deleteDoc, 
+  doc, 
+  query, 
+  onSnapshot,
+  orderBy,
+  writeBatch
+} from 'firebase/firestore';
 
 export type GalleryItem = {
   id: string;
@@ -48,72 +60,71 @@ const GalleryContext = createContext<GalleryContextType | undefined>(undefined);
 export function GalleryProvider({ children }: { children: ReactNode }) {
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const fetchGallery = async () => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from('gallery')
-      .select('*')
-      .order('id', { ascending: true });
-
-    if (!error && data) {
-      if (data.length === 0) {
-        // Seed initial data
-        const seedData = initialGallery.map(({ id, ...rest }) => ({ ...rest }));
-        const { data: seededData, error: seedError } = await supabase
-          .from('gallery')
-          .insert(seedData)
-          .select();
-        
-        if (!seedError && seededData) {
-          setGalleryItems(seededData as any);
-        }
-      } else {
-        setGalleryItems(data as any);
-      }
-    }
-    setLoading(false);
-  };
+  const { user } = useAuth();
 
   useEffect(() => {
-    fetchGallery();
-  }, []);
+    setLoading(true);
+    const path = 'gallery';
+    const galleryCol = collection(db, path);
+    const q = query(galleryCol, orderBy('title', 'asc'));
+
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      if (snapshot.empty) {
+        // Seed initial data if Firestore is empty AND user is admin
+        if (user?.role === 'admin') {
+            const batch = writeBatch(db);
+            initialGallery.forEach((item) => {
+                const newDocRef = doc(galleryCol);
+                batch.set(newDocRef, {
+                    ...item,
+                    id: newDocRef.id
+                });
+            });
+            await batch.commit();
+        } else {
+            setGalleryItems([]);
+            setLoading(false);
+        }
+      } else {
+        const galleryList = snapshot.docs.map(doc => ({
+            ...doc.data(),
+            id: doc.id
+        } as GalleryItem));
+        setGalleryItems(galleryList);
+        setLoading(false);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, path);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   const addGalleryItem = async (item: Omit<GalleryItem, 'id'>) => {
-    const { error } = await supabase
-      .from('gallery')
-      .insert([item]);
-
-    if (error) {
-      console.error('Error adding gallery item:', error.message);
-    } else {
-      fetchGallery();
+    const path = 'gallery';
+    try {
+        await addDoc(collection(db, path), item);
+    } catch (error) {
+        handleFirestoreError(error, OperationType.CREATE, path);
     }
   };
 
   const updateGalleryItem = async (id: string, updatedItem: Omit<GalleryItem, 'id'>) => {
-    const { error } = await supabase
-      .from('gallery')
-      .update(updatedItem)
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error updating gallery item:', error.message);
-    } else {
-      fetchGallery();
+    const path = `gallery/${id}`;
+    try {
+        await updateDoc(doc(db, 'gallery', id), updatedItem);
+    } catch (error) {
+        handleFirestoreError(error, OperationType.UPDATE, path);
     }
   };
 
   const removeGalleryItem = async (id: string) => {
-    const { error } = await supabase
-      .from('gallery')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error removing gallery item:', error.message);
-    } else {
-      fetchGallery();
+    const path = `gallery/${id}`;
+    try {
+        await deleteDoc(doc(db, 'gallery', id));
+    } catch (error) {
+        handleFirestoreError(error, OperationType.DELETE, path);
     }
   };
 

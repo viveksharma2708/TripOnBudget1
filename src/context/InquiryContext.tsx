@@ -1,6 +1,17 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { supabase } from '../supabase';
+import { db, handleFirestoreError, OperationType } from '../firebase';
+import { 
+  collection, 
+  addDoc, 
+  deleteDoc, 
+  doc, 
+  query, 
+  onSnapshot,
+  orderBy,
+  serverTimestamp,
+  Timestamp
+} from 'firebase/firestore';
 
 export type Inquiry = {
   id: string;
@@ -26,7 +37,7 @@ export function InquiryProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
-  const fetchInquiries = async () => {
+  useEffect(() => {
     if (user?.role !== 'admin') {
       setInquiries([]);
       setLoading(false);
@@ -34,42 +45,47 @@ export function InquiryProvider({ children }: { children: ReactNode }) {
     }
 
     setLoading(true);
-    const { data, error } = await supabase
-      .from('inquiries')
-      .select('*')
-      .order('date', { ascending: false });
+    const path = 'inquiries';
+    const inquiriesCol = collection(db, path);
+    const q = query(inquiriesCol, orderBy('date', 'desc'));
 
-    if (!error && data) {
-      setInquiries(data as any);
-    }
-    setLoading(false);
-  };
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const inquiriesList = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          date: data.date instanceof Timestamp ? data.date.toDate().toISOString() : data.date
+        } as Inquiry;
+      });
+      setInquiries(inquiriesList);
+      setLoading(false);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, path);
+      setLoading(false);
+    });
 
-  useEffect(() => {
-    fetchInquiries();
+    return () => unsubscribe();
   }, [user]);
 
   const addInquiry = async (inquiry: Omit<Inquiry, 'id' | 'date'>) => {
-    const { error } = await supabase
-      .from('inquiries')
-      .insert([inquiry]);
-
-    if (error) {
-      console.error('Error adding inquiry:', error.message);
-      throw error;
+    const path = 'inquiries';
+    try {
+      await addDoc(collection(db, path), {
+        ...inquiry,
+        date: serverTimestamp()
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, path);
     }
   };
 
   const deleteInquiry = async (id: string) => {
-    const { error } = await supabase
-      .from('inquiries')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      console.error('Error deleting inquiry:', error.message);
-    } else {
-      fetchInquiries();
+    const path = `inquiries/${id}`;
+    try {
+      await deleteDoc(doc(db, 'inquiries', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, path);
     }
   };
 
