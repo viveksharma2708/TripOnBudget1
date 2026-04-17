@@ -14,7 +14,26 @@ export default function Auth() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, signup, resetPassword, logout } = useAuth();
+  const { login, signup, resetPassword, logout, loginWithGoogle } = useAuth();
+
+  const handleGoogleLogin = async () => {
+    setError('');
+    setIsSubmitting(true);
+    try {
+      const result = await loginWithGoogle();
+      if (result.success) {
+        setSuccessMsg('Signed in with Google! Redirecting...');
+        const returnTo = location.state?.returnTo || '/';
+        navigate(returnTo);
+      } else {
+        setError(result.error || 'Failed to sign in with Google');
+      }
+    } catch (err) {
+      setError('An error occurred during Google sign in.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -154,6 +173,31 @@ export default function Auth() {
                 {successMsg}
               </div>
             )}
+
+            <div className="space-y-4 mb-8">
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={isSubmitting}
+                className="w-full flex items-center justify-center gap-3 py-3 px-4 border border-gray-300 rounded-xl shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+              >
+                <img 
+                  src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
+                  alt="Google" 
+                  className="w-5 h-5"
+                />
+                Continue with verified Google Account
+              </button>
+
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500 font-medium italic">or use verified email</span>
+                </div>
+              </div>
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               {view === 'signup' && (

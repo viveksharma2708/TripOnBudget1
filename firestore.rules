@@ -20,6 +20,11 @@ service cloud.firestore {
       return isEmailAdmin() || isDocAdmin();
     }
 
+    // Check if user is logged in AND verified
+    function isVerified() {
+      return request.auth != null && (request.auth.token.email_verified == true || isEmailAdmin());
+    }
+
     // Collection: Users
     match /users/{userId} {
       // Allow user to access their own doc or admins to access everything
@@ -42,9 +47,9 @@ service cloud.firestore {
 
     // Collection: Bookings
     match /bookings/{docId} {
-      allow read: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin());
+      allow read: if isVerified() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isVerified() && request.resource.data.userId == request.auth.uid;
+      allow update: if isVerified() && (resource.data.userId == request.auth.uid || isAdmin());
       allow delete: if isAdmin();
     }
 

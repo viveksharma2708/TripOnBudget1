@@ -6,9 +6,12 @@ import {
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  signInWithPopup,
+  sendEmailVerification,
   User as FirebaseUser
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { googleProvider } from '../firebase';
 
 export type User = {
   id: string;
@@ -16,12 +19,14 @@ export type User = {
   email: string;
   role: 'admin' | 'user';
   joinDate: string;
+  emailVerified: boolean;
 };
 
 type AuthContextType = {
   user: User | null;
   login: (email: string, password?: string) => Promise<{success: boolean; error?: string}>;
   signup: (email: string, name: string, password?: string) => Promise<{success: boolean; error?: string; requiresEmail?: boolean}>;
+  loginWithGoogle: () => Promise<{success: boolean; error?: string}>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<boolean>;
   deleteUserProfile: (id: string) => Promise<void>;
@@ -58,10 +63,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const data = userDoc.data();
         setUser({
           id: firebaseUser.uid,
-          name: data.name || firebaseUser.email?.split('@')[0] || 'User',
+          name: data.name || firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
           email: firebaseUser.email || '',
           role: data.role as 'admin' | 'user',
-          joinDate: data.joinDate || new Date().toISOString()
+          joinDate: data.joinDate || new Date().toISOString(),
+          emailVerified: firebaseUser.emailVerified
         });
       } else {
         console.warn('Profile doc missing. Re-creating.');
@@ -69,10 +75,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const roleStr = (emailStr === 'padatvivek2@gmail.com' || emailStr === 'vivek5656sharma@gmail.com') ? 'admin' : 'user';
         const newUserObj: User = {
           id: firebaseUser.uid,
-          name: emailStr.split('@')[0] || 'User',
+          name: firebaseUser.displayName || emailStr.split('@')[0] || 'User',
           email: emailStr,
           role: roleStr,
-          joinDate: new Date().toISOString()
+          joinDate: new Date().toISOString(),
+          emailVerified: firebaseUser.emailVerified
         };
         await setDoc(doc(db, 'users', firebaseUser.uid), newUserObj);
         setUser(newUserObj);
@@ -85,10 +92,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Fallback
       setUser({
          id: firebaseUser.uid,
-         name: firebaseUser.email?.split('@')[0] || 'User',
+         name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'User',
          email: firebaseUser.email || '',
          role: (firebaseUser.email === 'padatvivek2@gmail.com' || firebaseUser.email === 'vivek5656sharma@gmail.com') ? 'admin' : 'user',
-         joinDate: new Date().toISOString()
+         joinDate: new Date().toISOString(),
+         emailVerified: firebaseUser.emailVerified
       });
     }
   };
@@ -106,7 +114,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               name: data.name,
               email: data.email,
               role: data.role,
-              joinDate: data.joinDate
+              joinDate: data.joinDate,
+              emailVerified: data.emailVerified !== undefined ? data.emailVerified : true
             } as User;
           });
           setAllUsers(usersList);
@@ -119,11 +128,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
+  const loginWithGoogle = async (): Promise<{success: boolean; error?: string}> => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider);
+      if (!result.user.emailVerified) {
+        await result.user.delete();
+        return { success: false, error: 'Your Google email is not verified. Access denied.' };
+      }
+      await fetchProfile(result.user);
+      return { success: true };
+    } catch (err: any) {
+      console.error('Google Auth Error:', err);
+      return { success: false, error: err.message || 'Failed to sign in with Google' };
+    }
+  };
+
   const login = async (email: string, password?: string): Promise<{success: boolean; error?: string}> => {
     if (!password) return { success: false, error: 'Password is required' };
     
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      if (!userCredential.user.emailVerified) {
+        await logout();
+        return { success: false, error: 'Please verify your email address before logging in. A verification link was sent to your inbox when you signed up.' };
+      }
       await fetchProfile(userCredential.user);
       return { success: true };
     } catch (err: any) {
@@ -157,7 +185,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         name: name,
         email: email,
         role: roleStr,
-        joinDate: new Date().toISOString()
+        joinDate: new Date().toISOString(),
+        emailVerified: userCredential.user.emailVerified
       };
       
       // Save profile in Firestore
@@ -168,8 +197,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         handleFirestoreError(e, OperationType.WRITE, path);
       }
       
-      setUser(newUserObj);
-      return { success: true, requiresEmail: false };
+      // Send verification email
+      await sendEmailVerification(userCredential.user);
+      
+      await logout(); // Logout to force them to verify before login
+      
+      return { success: true, requiresEmail: true };
     } catch (err: any) {
       console.error('Firebase signup error:', err);
       let errorMsg = err.message;
@@ -209,7 +242,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, resetPassword, deleteUserProfile, allUsers, loading }}>
+    <AuthContext.Provider value={{ user, login, signup, loginWithGoogle, logout, resetPassword, deleteUserProfile, allUsers, loading }}>
       {loading ? (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>

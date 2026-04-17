@@ -54,10 +54,11 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     setLoading(true);
     const path = 'bookings';
     const bookingsCol = collection(db, path);
-    let q = query(bookingsCol, orderBy('createdAt', 'desc'));
+    // Remove orderBy to avoid composite index requirement for non-admins
+    let q = query(bookingsCol);
 
     if (user.role !== 'admin') {
-      q = query(bookingsCol, where('userId', '==', user.id), orderBy('createdAt', 'desc'));
+      q = query(bookingsCol, where('userId', '==', user.id));
     }
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -69,7 +70,13 @@ export function BookingProvider({ children }: { children: ReactNode }) {
           createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt
         } as Booking;
       });
-      setBookings(bookingsList);
+      
+      // Sort client-side to avoid index requirement
+      const sortedList = [...bookingsList].sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      
+      setBookings(sortedList);
       setLoading(false);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, path);

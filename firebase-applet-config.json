@@ -1,9 +1,10 @@
 {
+  "projectId": "triponbudget-b6cc1",
+  "appId": "1:969630037091:web:12205b08c5533a94a57456",
   "apiKey": "AIzaSyAHcb9nGVhyV-SjKMkZsnsCVF96_d1UoLw",
   "authDomain": "triponbudget-b6cc1.firebaseapp.com",
-  "projectId": "triponbudget-b6cc1",
+  "firestoreDatabaseId": "ai-studio-c1a01f03-4cbe-4dac-92c8-2c2e3a8677a5",
   "storageBucket": "triponbudget-b6cc1.firebasestorage.app",
   "messagingSenderId": "969630037091",
-  "appId": "1:969630037091:web:49a86038795fd653a57456",
-  "firestoreDatabaseId": "(default)"
+  "measurementId": ""
 }
