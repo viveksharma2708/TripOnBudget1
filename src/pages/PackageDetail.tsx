@@ -374,7 +374,7 @@ export default function PackageDetail() {
                       <p className="text-sm text-gray-600">{pkg.duration} • {pkg.location}</p>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Travelers</label>
                         <input 
@@ -386,6 +386,16 @@ export default function PackageDetail() {
                           className={`w-full px-4 py-3 rounded-xl border ${travelersError ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-primary-500'} focus:ring-2 outline-none transition-colors`}
                         />
                         {travelersError && <p className="text-red-500 text-xs mt-1">{travelersError}</p>}
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Travel Date</label>
+                        <input 
+                          type="text"
+                          readOnly
+                          value={pkg.packageDate || 'TBA'}
+                          className="w-full px-4 py-3 rounded-xl border border-gray-100 bg-gray-50 text-gray-500 font-medium outline-none cursor-not-allowed"
+                        />
+                        <p className="text-[10px] text-gray-400 mt-1 uppercase font-bold tracking-wider">Fixed Date (Set by Admin)</p>
                       </div>
                     </div>
 

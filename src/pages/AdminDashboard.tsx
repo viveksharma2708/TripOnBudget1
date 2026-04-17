@@ -391,8 +391,8 @@ export default function AdminDashboard() {
                   <input required type="text" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none" value={formData.duration} onChange={e => setFormData({...formData, duration: e.target.value})} placeholder="e.g. 7 Days / 6 Nights" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Package Date</label>
-                  <input type="date" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none" value={formData.packageDate} onChange={e => setFormData({...formData, packageDate: e.target.value})} />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Package Date (Set by Admin)</label>
+                  <input type="text" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none" value={formData.packageDate} onChange={e => setFormData({...formData, packageDate: e.target.value})} placeholder="e.g. 24 May 2026" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
