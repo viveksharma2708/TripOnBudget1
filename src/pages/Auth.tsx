@@ -18,6 +18,7 @@ export default function Auth() {
 
   const handleGoogleLogin = async () => {
     setError('');
+    setSuccessMsg('');
     setIsSubmitting(true);
     try {
       const result = await loginWithGoogle();
@@ -26,10 +27,18 @@ export default function Auth() {
         const returnTo = location.state?.returnTo || '/';
         navigate(returnTo);
       } else {
-        setError(result.error || 'Failed to sign in with Google');
+        // Handle specific Firebase error codes or friendly messages
+        if (result.error?.includes('popup-closed-by-user')) {
+          setError('The sign-in popup was closed before completing. Please try again.');
+        } else if (result.error?.includes('cancelled-by-user')) {
+          setError('Sign-in was cancelled. Please try again.');
+        } else {
+          setError(result.error || 'Failed to sign in with Google');
+        }
       }
-    } catch (err) {
-      setError('An error occurred during Google sign in.');
+    } catch (err: any) {
+      console.error('Google Login component error:', err);
+      setError('An error occurred during Google sign in. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

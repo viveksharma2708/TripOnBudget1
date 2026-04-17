@@ -128,7 +128,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
+  const [loadingGoogle, setLoadingGoogle] = useState(false);
+
   const loginWithGoogle = async (): Promise<{success: boolean; error?: string}> => {
+    if (loadingGoogle) return { success: false, error: 'Authorization already in progress.' };
+    setLoadingGoogle(true);
     try {
       const result = await signInWithPopup(auth, googleProvider);
       if (!result.user.emailVerified) {
@@ -139,7 +143,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true };
     } catch (err: any) {
       console.error('Google Auth Error:', err);
-      return { success: false, error: err.message || 'Failed to sign in with Google' };
+      // Simplify error message for UI
+      let msg = err.message || 'Failed to sign in with Google';
+      if (err.code === 'auth/popup-closed-by-user') {
+        msg = 'The sign-in popup was closed before completion. Please disable any popup blockers and try again.';
+      } else if (err.code === 'auth/popup-blocked') {
+        msg = 'The sign-in popup was blocked by your browser. Please allow popups for this site.';
+      }
+      return { success: false, error: msg };
+    } finally {
+      setLoadingGoogle(false);
     }
   };
 
