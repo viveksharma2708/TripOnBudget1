@@ -71,11 +71,17 @@ export default function Packages() {
         <meta property="og:description" content="Explore our wide range of budget-friendly travel packages. Filter by category, price, and destination to find your perfect trip." />
       </Helmet>
       {/* Header */}
-      <div className="bg-primary-600 text-white py-16 mb-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div className="bg-primary-600 text-white py-16 mb-12 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
           <h1 className="text-4xl md:text-5xl font-heading font-bold mb-4">Explore Our Packages</h1>
-          <p className="text-primary-100 text-lg max-w-2xl mx-auto">Find the perfect getaway that fits your budget and style.</p>
+          <p className="text-primary-100 text-lg max-w-2xl mx-auto mb-8">Find the perfect getaway that fits your budget and style.</p>
+          <Link to="/dashboard" className="inline-flex items-center gap-2 bg-white text-primary-600 px-6 py-3 rounded-xl font-bold hover:bg-primary-50 transition-colors shadow-lg">
+            <Calendar className="w-5 h-5" />
+            View My Bookings
+          </Link>
         </div>
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-primary-500 rounded-full blur-3xl opacity-20"></div>
+        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-64 h-64 bg-primary-700 rounded-full blur-3xl opacity-20"></div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

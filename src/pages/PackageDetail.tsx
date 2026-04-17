@@ -19,11 +19,9 @@ export default function PackageDetail() {
   const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
   const [bookingSuccess, setBookingSuccess] = useState(false);
   const [travelers, setTravelers] = useState(1);
-  const [date, setDate] = useState('');
   const [bookingEmail, setBookingEmail] = useState(user?.email || '');
   const [bookingName, setBookingName] = useState(user?.name || '');
   const [bookingError, setBookingError] = useState('');
-  const [dateError, setDateError] = useState('');
   const [travelersError, setTravelersError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [nameError, setNameError] = useState('');
@@ -61,7 +59,6 @@ export default function PackageDetail() {
   const submitBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     setBookingError('');
-    setDateError('');
     setTravelersError('');
     setEmailError('');
     setNameError('');
@@ -71,19 +68,6 @@ export default function PackageDetail() {
     if (!bookingName.trim()) {
       setNameError('Full name is required.');
       isValid = false;
-    }
-
-    if (!date) {
-      setDateError('Please select a travel date.');
-      isValid = false;
-    } else {
-      const selectedDate = new Date(date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (selectedDate < today) {
-        setDateError('Travel date must be in the future.');
-        isValid = false;
-      }
     }
 
     if (!travelers || travelers < 1) {
@@ -118,7 +102,7 @@ export default function PackageDetail() {
         userEmail: user.email,
         packageId: pkg.id,
         packageTitle: pkg.title,
-        date,
+        date: pkg.packageDate || 'TBA',
         travelers,
         totalAmount: pkg.price * travelers,
         isFakeName
@@ -171,6 +155,12 @@ export default function PackageDetail() {
               <Calendar className="w-4 h-4" />
               <span>{pkg.duration}</span>
             </div>
+            {pkg.packageDate && (
+              <div className="flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-lg">
+                <Calendar className="w-4 h-4" />
+                <span>Date: {pkg.packageDate}</span>
+              </div>
+            )}
           </div>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-white mb-4">
             {pkg.title}
@@ -194,7 +184,7 @@ export default function PackageDetail() {
               <h2 className="text-2xl font-heading font-bold text-gray-900 mb-4">Overview</h2>
               <p className="text-gray-600 leading-relaxed text-lg">{pkg.description}</p>
               
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-8 pt-8 border-t border-gray-100">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mt-8 pt-8 border-t border-gray-100">
                 <div className="flex flex-col items-center text-center">
                   <div className="w-12 h-12 bg-primary-50 text-primary-600 rounded-full flex items-center justify-center mb-3">
                     <Clock className="w-6 h-6" />
@@ -215,6 +205,13 @@ export default function PackageDetail() {
                   </div>
                   <span className="text-sm text-gray-500">Location</span>
                   <span className="font-semibold text-gray-900">{pkg.location.split(',')[0]}</span>
+                </div>
+                <div className="flex flex-col items-center text-center">
+                  <div className="w-12 h-12 bg-primary-50 text-primary-600 rounded-full flex items-center justify-center mb-3">
+                    <Calendar className="w-6 h-6" />
+                  </div>
+                  <span className="text-sm text-gray-500">Starts On</span>
+                  <span className="font-semibold text-gray-900">{pkg.packageDate || 'Flexible'}</span>
                 </div>
                 <div className="flex flex-col items-center text-center">
                   <div className="w-12 h-12 bg-primary-50 text-primary-600 rounded-full flex items-center justify-center mb-3">
@@ -377,18 +374,7 @@ export default function PackageDetail() {
                       <p className="text-sm text-gray-600">{pkg.duration} • {pkg.location}</p>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Travel Date</label>
-                        <input 
-                          type="date" 
-                          required
-                          value={date}
-                          onChange={(e) => { setDate(e.target.value); setDateError(''); }}
-                          className={`w-full px-4 py-3 rounded-xl border ${dateError ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-primary-500'} focus:ring-2 outline-none transition-colors`}
-                        />
-                        {dateError && <p className="text-red-500 text-xs mt-1">{dateError}</p>}
-                      </div>
+                    <div className="grid grid-cols-1 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Travelers</label>
                         <input 

@@ -27,7 +27,8 @@ export const packages = [
       "https://images.unsplash.com/photo-1506461883276-594a12b11cf3?auto=format&fit=crop&q=80&w=1000",
       "https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&q=80&w=1000"
     ],
-    video: "https://www.youtube.com/embed/35npVaFGHMY"
+    video: "https://www.youtube.com/embed/35npVaFGHMY",
+    packageDate: "2026-05-15"
   },
   {
     id: "pkg-2",
@@ -53,7 +54,8 @@ export const packages = [
       "https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&q=80&w=1000",
       "https://images.unsplash.com/photo-1501785888041-af3ef285b470?auto=format&fit=crop&q=80&w=1000"
     ],
-    video: ""
+    video: "",
+    packageDate: "2026-05-20"
   },
   {
     id: "pkg-3",

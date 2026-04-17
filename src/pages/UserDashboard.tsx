@@ -61,15 +61,15 @@ export default function UserDashboard() {
                           </p>
                         </div>
                         <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                          booking.status === 'confirmed' ? 'bg-green-100 text-green-700' :
-                          booking.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                          'bg-yellow-100 text-yellow-700'
+                          booking.status === 'Confirmed' ? 'bg-green-100 text-green-700' :
+                          booking.status === 'Waiting' ? 'bg-yellow-100 text-yellow-700' :
+                          'bg-blue-100 text-blue-700'
                         }`}>
                           {booking.status}
                         </span>
                       </div>
                       
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                         <div className="flex items-center gap-2 text-gray-600">
                           <Calendar className="w-4 h-4 text-gray-400" />
                           <span>Travel Date: {booking.date}</span>
@@ -81,6 +81,10 @@ export default function UserDashboard() {
                         <div className="flex items-center gap-2 text-gray-600">
                           <CreditCard className="w-4 h-4 text-gray-400" />
                           <span>Total: ₹{booking.totalAmount.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <CreditCard className="w-4 h-4 text-gray-400" />
+                          <span>Payment: <span className={booking.paymentStatus === 'Completed' ? 'text-green-600 font-bold' : 'text-red-500 font-bold'}>{booking.paymentStatus || 'Pending'}</span></span>
                         </div>
                       </div>
                     </div>

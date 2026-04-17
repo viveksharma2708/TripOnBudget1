@@ -77,8 +77,9 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const message = error instanceof Error ? error.message : String(error);
   const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
+    error: message,
     authInfo: {
       userId: auth.currentUser?.uid,
       email: auth.currentUser?.email,
@@ -96,5 +97,13 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     path
   }
   console.error('Firestore Error: ', JSON.stringify(errInfo));
+  
+  // Show alert for administrative visibility
+  if (message.includes('permission-denied') || message.includes('Missing or insufficient permissions')) {
+    window.alert(`Security Error: You do not have permission to perform this ${operationType} operation on ${path}. Please ensure you are logged in with an admin account and authorized in the Firebase console.`);
+  } else {
+    window.alert(`Database Error (${operationType}): ${message}`);
+  }
+  
   throw new Error(JSON.stringify(errInfo));
 }

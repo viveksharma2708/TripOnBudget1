@@ -26,10 +26,11 @@
         "date": { "type": "string", "format": "date" },
         "travelers": { "type": "number" },
         "totalAmount": { "type": "number" },
-        "status": { "type": "string", "enum": ["pending", "confirmed", "cancelled"] },
+        "status": { "type": "string", "enum": ["Waiting", "Confirmed", "Completed"] },
+        "paymentStatus": { "type": "string", "enum": ["Pending", "Completed"] },
         "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": ["userId", "packageId", "date", "travelers", "status"]
+      "required": ["userId", "packageId", "date", "travelers", "status", "paymentStatus"]
     },
     "Inquiry": {
       "title": "Inquiry",
@@ -54,7 +55,8 @@
         "title": { "type": "string" },
         "description": { "type": "string" },
         "price": { "type": "number" },
-        "location": { "type": "string" }
+        "location": { "type": "string" },
+        "packageDate": { "type": "string", "format": "date" }
       },
       "required": ["title", "price"]
     }

@@ -7,14 +7,36 @@ import { Trash2, Plus, Image as ImageIcon, Edit2, Users as UsersIcon, Package as
 import { useBookings } from '../context/BookingContext';
 import { useTestimonials } from '../context/TestimonialContext';
 import { useGallery } from '../context/GalleryContext';
+import { motion } from 'motion/react';
 
 export default function AdminDashboard() {
   const { packages, addPackage, updatePackage, removePackage, loading: packagesLoading } = usePackages();
   const { user, allUsers, deleteUserProfile, loading: authLoading } = useAuth();
   const { inquiries, deleteInquiry, loading: inquiriesLoading } = useInquiries();
-  const { bookings, updateBookingStatus, updateBooking, loading: bookingsLoading } = useBookings();
+  const { bookings, updateBookingStatus, updateBooking, deleteBooking, loading: bookingsLoading } = useBookings();
   const { testimonials, addTestimonial, updateTestimonial, removeTestimonial, loading: testimonialsLoading } = useTestimonials();
   const { galleryItems, addGalleryItem, updateGalleryItem, removeGalleryItem, loading: galleryLoading } = useGallery();
+
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {}
+  });
+
+  const showConfirm = (title: string, message: string, onConfirm: () => void) => {
+    setConfirmModal({
+      isOpen: true,
+      title,
+      message,
+      onConfirm
+    });
+  };
   const navigate = useNavigate();
   
   const [activeTab, setActiveTab] = useState<'packages' | 'users' | 'inquiries' | 'bookings' | 'testimonials' | 'gallery'>('packages');
@@ -26,7 +48,8 @@ export default function AdminDashboard() {
     date: '',
     travelers: 1,
     totalAmount: 0,
-    status: 'pending' as 'pending' | 'confirmed' | 'cancelled'
+    status: 'Waiting' as 'Waiting' | 'Confirmed' | 'Completed',
+    paymentStatus: 'Pending' as 'Pending' | 'Completed'
   });
   
   const [isAddingTestimonial, setIsAddingTestimonial] = useState(false);
@@ -65,7 +88,10 @@ export default function AdminDashboard() {
     exclusions: '',
     itinerary: '',
     gallery: '',
-    video: ''
+    video: '',
+    packageDate: '',
+    rating: '4.5',
+    reviews: '0'
   });
 
   if (authLoading) {
@@ -112,7 +138,10 @@ export default function AdminDashboard() {
       exclusions: pkg.exclusions ? pkg.exclusions.join('\n') : '',
       itinerary: serializeItinerary(pkg.itinerary),
       gallery: pkg.gallery ? pkg.gallery.join('\n') : '',
-      video: pkg.video || ''
+      video: pkg.video || '',
+      packageDate: pkg.packageDate || '',
+      rating: (pkg.rating || 4.5).toString(),
+      reviews: (pkg.reviews || 0).toString()
     });
     setIsAdding(true);
   };
@@ -129,14 +158,15 @@ export default function AdminDashboard() {
       originalPrice: Number(formData.originalPrice),
       image: formData.image || "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&q=80&w=1000",
       category: formData.category,
-      rating: 4.5,
-      reviews: 0,
       description: formData.description,
       itinerary: parseItinerary(formData.itinerary),
       inclusions: formData.inclusions.split('\n').filter(i => i.trim()),
       exclusions: formData.exclusions.split('\n').filter(e => e.trim()),
       gallery: formData.gallery.split('\n').filter(url => url.trim()),
-      video: formData.video.trim()
+      video: formData.video.trim(),
+      packageDate: formData.packageDate,
+      rating: Number(formData.rating),
+      reviews: Number(formData.reviews)
     };
 
     if (editingId) {
@@ -148,7 +178,7 @@ export default function AdminDashboard() {
     setIsAdding(false);
     setEditingId(null);
     setFormData({
-      title: '', location: '', duration: '', price: '', originalPrice: '', image: '', category: 'Domestic', description: '', inclusions: '', exclusions: '', itinerary: '', gallery: '', video: ''
+      title: '', location: '', duration: '', price: '', originalPrice: '', image: '', category: 'Domestic', description: '', inclusions: '', exclusions: '', itinerary: '', gallery: '', video: '', packageDate: '', rating: '4.5', reviews: '0'
     });
   };
 
@@ -156,7 +186,7 @@ export default function AdminDashboard() {
     setIsAdding(false);
     setEditingId(null);
     setFormData({
-      title: '', location: '', duration: '', price: '', originalPrice: '', image: '', category: 'Domestic', description: '', inclusions: '', exclusions: '', itinerary: '', gallery: '', video: ''
+      title: '', location: '', duration: '', price: '', originalPrice: '', image: '', category: 'Domestic', description: '', inclusions: '', exclusions: '', itinerary: '', gallery: '', video: '', packageDate: '', rating: '4.5', reviews: '0'
     });
   };
 
@@ -223,7 +253,8 @@ export default function AdminDashboard() {
       date: booking.date,
       travelers: booking.travelers,
       totalAmount: booking.totalAmount,
-      status: booking.status
+      status: booking.status,
+      paymentStatus: booking.paymentStatus || 'Pending'
     });
   };
 
@@ -360,6 +391,10 @@ export default function AdminDashboard() {
                   <input required type="text" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none" value={formData.duration} onChange={e => setFormData({...formData, duration: e.target.value})} placeholder="e.g. 7 Days / 6 Nights" />
                 </div>
                 <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Package Date</label>
+                  <input type="date" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none" value={formData.packageDate} onChange={e => setFormData({...formData, packageDate: e.target.value})} />
+                </div>
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
                   <select className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none" value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
                     <option value="Domestic">Domestic</option>
@@ -376,13 +411,30 @@ export default function AdminDashboard() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Original Price (₹)</label>
                   <input required type="number" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none" value={formData.originalPrice} onChange={e => setFormData({...formData, originalPrice: e.target.value})} placeholder="e.g. 30000" />
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Rating (Star)</label>
+                  <input required type="number" step="0.1" min="0" max="5" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none" value={formData.rating} onChange={e => setFormData({...formData, rating: e.target.value})} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Review Count</label>
+                  <input required type="number" min="0" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none" value={formData.reviews} onChange={e => setFormData({...formData, reviews: e.target.value})} />
+                </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Image URL</label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <ImageIcon className="h-5 w-5 text-gray-400" />
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Image URL (Front Photo)</label>
+                  <div className="flex gap-4 items-start">
+                    <div className="flex-1">
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                          <ImageIcon className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <input required type="url" className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} placeholder="https://images.unsplash.com/photo-..." />
+                      </div>
                     </div>
-                    <input required type="url" className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none" value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} placeholder="https://images.unsplash.com/photo-..." />
+                    {formData.image && (
+                      <div className="w-24 h-24 rounded-xl overflow-hidden border border-gray-200 shrink-0">
+                        <img src={formData.image} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="md:col-span-2">
@@ -454,7 +506,13 @@ export default function AdminDashboard() {
                             <Edit2 className="w-5 h-5" />
                           </button>
                           <button 
-                            onClick={async () => await removePackage(pkg.id)}
+                            onClick={() => {
+                              showConfirm(
+                                'Delete Package',
+                                'Are you sure you want to delete this package? This action cannot be undone.',
+                                () => removePackage(pkg.id)
+                              );
+                            }}
                             className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                             title="Delete Package"
                           >
@@ -508,10 +566,12 @@ export default function AdminDashboard() {
                       <td className="p-4 text-right">
                         {u.id !== user?.id && (
                           <button 
-                            onClick={async () => {
-                              if (window.confirm(`Are you sure you want to delete user ${u.name}? This will remove their profile from the database.`)) {
-                                await deleteUserProfile(u.id);
-                              }
+                            onClick={() => {
+                              showConfirm(
+                                'Delete User',
+                                `Are you sure you want to delete user ${u.name}? This will remove their profile from the database.`,
+                                () => deleteUserProfile(u.id)
+                              );
                             }}
                             className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                             title="Delete User Record"
@@ -541,7 +601,13 @@ export default function AdminDashboard() {
               inquiries.map((inquiry) => (
                 <div key={inquiry.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative">
                   <button 
-                    onClick={async () => await deleteInquiry(inquiry.id)}
+                    onClick={() => {
+                      showConfirm(
+                        'Delete Inquiry',
+                        'Are you sure you want to delete this inquiry?',
+                        () => deleteInquiry(inquiry.id)
+                      );
+                    }}
                     className="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors"
                     title="Delete Inquiry"
                   >
@@ -586,10 +652,6 @@ export default function AdminDashboard() {
                 <form onSubmit={handleSubmitBooking} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Travel Date</label>
-                      <input required type="date" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none" value={bookingFormData.date} onChange={e => setBookingFormData({...bookingFormData, date: e.target.value})} />
-                    </div>
-                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Travelers</label>
                       <input required type="number" min="1" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none" value={bookingFormData.travelers} onChange={e => setBookingFormData({...bookingFormData, travelers: parseInt(e.target.value) || 1})} />
                     </div>
@@ -604,9 +666,20 @@ export default function AdminDashboard() {
                         value={bookingFormData.status}
                         onChange={e => setBookingFormData({...bookingFormData, status: e.target.value as any})}
                       >
-                        <option value="pending">Pending</option>
-                        <option value="confirmed">Confirmed</option>
-                        <option value="cancelled">Cancelled</option>
+                        <option value="Waiting">Waiting</option>
+                        <option value="Confirmed">Confirmed</option>
+                        <option value="Completed">Completed</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Payment Status</label>
+                      <select 
+                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none"
+                        value={bookingFormData.paymentStatus}
+                        onChange={e => setBookingFormData({...bookingFormData, paymentStatus: e.target.value as any})}
+                      >
+                        <option value="Pending">Pending</option>
+                        <option value="Completed">Completed</option>
                       </select>
                     </div>
                   </div>
@@ -634,6 +707,7 @@ export default function AdminDashboard() {
                     <th className="p-4 font-semibold text-gray-600">Travelers</th>
                     <th className="p-4 font-semibold text-gray-600">Amount</th>
                     <th className="p-4 font-semibold text-gray-600">Status</th>
+                    <th className="p-4 font-semibold text-gray-600">Payment</th>
                     <th className="p-4 font-semibold text-gray-600">Action</th>
                   </tr>
                 </thead>
@@ -655,11 +729,18 @@ export default function AdminDashboard() {
                       <td className="p-4 font-medium text-gray-900">₹{b.totalAmount.toLocaleString('en-IN')}</td>
                       <td className="p-4">
                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          b.status === 'confirmed' ? 'bg-green-50 text-green-700' : 
-                          b.status === 'pending' ? 'bg-yellow-50 text-yellow-700' : 
-                          'bg-red-50 text-red-700'
+                          b.status === 'Confirmed' ? 'bg-green-50 text-green-700' : 
+                          b.status === 'Waiting' ? 'bg-yellow-50 text-yellow-700' : 
+                          'bg-blue-50 text-blue-700'
                         }`}>
-                          {b.status.charAt(0).toUpperCase() + b.status.slice(1)}
+                          {b.status}
+                        </span>
+                      </td>
+                      <td className="p-4">
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          b.paymentStatus === 'Completed' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                        }`}>
+                          {b.paymentStatus || 'Pending'}
                         </span>
                       </td>
                       <td className="p-4 flex items-center gap-2">
@@ -676,19 +757,19 @@ export default function AdminDashboard() {
                         >
                           <Mail className="w-4 h-4" /> Send Confirmation
                         </a>
-                        {b.status !== 'cancelled' && (
-                          <button 
-                            onClick={async () => {
-                              if (confirm('Are you sure you want to cancel this booking?')) {
-                                await updateBookingStatus(b.id, 'cancelled');
-                              }
-                            }}
-                            className="p-1.5 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors ml-auto"
-                            title="Cancel Booking"
-                          >
-                            <Trash2 className="w-4 h-4" /> Cancel
-                          </button>
-                        )}
+                        <button 
+                          onClick={() => {
+                            showConfirm(
+                              'Delete Booking',
+                              'Are you sure you want to delete this booking? This action is irreversible.',
+                              () => deleteBooking(b.id)
+                            );
+                          }}
+                          className="p-1.5 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors ml-auto"
+                          title="Delete Booking"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </td>
                     </tr>
                     );
@@ -764,7 +845,16 @@ export default function AdminDashboard() {
                     <button onClick={() => handleEditTestimonial(test)} className="p-2 text-gray-400 hover:text-primary-600 bg-gray-50 hover:bg-primary-50 rounded-lg transition-colors">
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button onClick={async () => await removeTestimonial(test.id)} className="p-2 text-gray-400 hover:text-red-600 bg-gray-50 hover:bg-red-50 rounded-lg transition-colors">
+                    <button 
+                      onClick={() => {
+                        showConfirm(
+                          'Delete Testimonial',
+                          'Are you sure you want to delete this testimonial?',
+                          () => removeTestimonial(test.id)
+                        );
+                      }} 
+                      className="p-2 text-gray-400 hover:text-red-600 bg-gray-50 hover:bg-red-50 rounded-lg transition-colors"
+                    >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -847,7 +937,15 @@ export default function AdminDashboard() {
                     <button onClick={() => handleEditGallery(item)} className="p-2 text-gray-700 hover:text-primary-600 bg-white/90 hover:bg-white rounded-lg transition-colors shadow-sm" title="Edit Media">
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button onClick={async () => await removeGalleryItem(item.id)} className="p-2 text-gray-700 hover:text-red-600 bg-white/90 hover:bg-white rounded-lg transition-colors shadow-sm" title="Delete Media">
+                    <button 
+                      onClick={() => {
+                        showConfirm(
+                          'Delete Media Item',
+                          'Are you sure you want to delete this media item?',
+                          () => removeGalleryItem(item.id)
+                        );
+                      }} 
+                      className="p-2 text-gray-700 hover:text-red-600 bg-white/90 hover:bg-white rounded-lg transition-colors shadow-sm" title="Delete Media">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -877,6 +975,37 @@ export default function AdminDashboard() {
           </div>
         )}
       </div>
+
+      {/* Confirmation Modal */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl"
+          >
+            <h3 className="text-2xl font-bold text-gray-900 mb-2">{confirmModal.title}</h3>
+            <p className="text-gray-600 mb-8 leading-relaxed">{confirmModal.message}</p>
+            <div className="flex gap-4">
+              <button 
+                onClick={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+                className="flex-1 px-6 py-3 rounded-xl font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => {
+                  confirmModal.onConfirm();
+                  setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                }}
+                className="flex-1 px-6 py-3 rounded-xl font-bold bg-red-600 text-white hover:bg-red-700 transition-colors shadow-lg shadow-red-200"
+              >
+                Confirm Delete
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

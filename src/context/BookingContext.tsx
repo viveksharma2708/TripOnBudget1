@@ -5,6 +5,7 @@ import {
   collection, 
   addDoc, 
   updateDoc, 
+  deleteDoc,
   doc, 
   query, 
   where, 
@@ -24,16 +25,18 @@ export type Booking = {
   date: string;
   travelers: number;
   totalAmount: number;
-  status: 'pending' | 'confirmed' | 'cancelled';
+  status: 'Waiting' | 'Confirmed' | 'Completed';
+  paymentStatus: 'Pending' | 'Completed';
   createdAt: string;
   isFakeName?: boolean;
 };
 
 type BookingContextType = {
   bookings: Booking[];
-  addBooking: (booking: Omit<Booking, 'id' | 'createdAt' | 'status'>) => Promise<void>;
+  addBooking: (booking: Omit<Booking, 'id' | 'createdAt' | 'status' | 'paymentStatus'>) => Promise<void>;
   updateBookingStatus: (id: string, status: Booking['status']) => Promise<void>;
   updateBooking: (id: string, bookingData: Partial<Booking>) => Promise<void>;
+  deleteBooking: (id: string) => Promise<void>;
   loading: boolean;
 };
 
@@ -86,12 +89,13 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [user]);
 
-  const addBooking = async (bookingData: Omit<Booking, 'id' | 'createdAt' | 'status'>) => {
+  const addBooking = async (bookingData: Omit<Booking, 'id' | 'createdAt' | 'status' | 'paymentStatus'>) => {
     const path = 'bookings';
     try {
       await addDoc(collection(db, path), {
         ...bookingData,
-        status: 'pending',
+        status: 'Waiting',
+        paymentStatus: 'Pending',
         createdAt: serverTimestamp()
       });
     } catch (error) {
@@ -123,12 +127,22 @@ export function BookingProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const deleteBooking = async (id: string) => {
+    const path = `bookings/${id}`;
+    try {
+      await deleteDoc(doc(db, 'bookings', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, path);
+    }
+  };
+
   return (
     <BookingContext.Provider value={{ 
         bookings, 
         addBooking, 
         updateBookingStatus, 
         updateBooking,
+        deleteBooking,
         loading
     }}>
       {children}

@@ -10,7 +10,7 @@ import {
   sendEmailVerification,
   User as FirebaseUser
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
 import { googleProvider } from '../firebase';
 
 export type User = {
@@ -252,7 +252,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
        return;
     }
     try {
-      const { deleteDoc, doc } = await import('firebase/firestore');
       await deleteDoc(doc(db, 'users', id));
       setAllUsers(prev => prev.filter(u => u.id !== id));
     } catch (e) {
