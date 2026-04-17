@@ -143,12 +143,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { success: true };
     } catch (err: any) {
       console.error('Google Auth Error:', err);
-      // Simplify error message for UI
-      let msg = err.message || 'Failed to sign in with Google';
+      // Simplify error message for UI while keeping the error code for detection
+      let msg = `[${err.code || 'error'}] ${err.message || 'Failed to sign in with Google'}`;
       if (err.code === 'auth/popup-closed-by-user') {
-        msg = 'The sign-in popup was closed before completion. Please disable any popup blockers and try again.';
+        msg = 'auth/popup-closed-by-user: The sign-in popup was closed before completion. Please disable any popup blockers and try again.';
       } else if (err.code === 'auth/popup-blocked') {
-        msg = 'The sign-in popup was blocked by your browser. Please allow popups for this site.';
+        msg = 'auth/popup-blocked: The sign-in popup was blocked by your browser. Please allow popups for this site.';
       }
       return { success: false, error: msg };
     } finally {

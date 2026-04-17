@@ -8,7 +8,14 @@ import firebaseConfig from '../firebase-applet-config.json';
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
+// Customizing Google Provider for better popup reliability
 export const googleProvider = new GoogleAuthProvider();
+googleProvider.setCustomParameters({ 
+  prompt: 'select_account',
+  // Some browsers handle popups better if we hint the login hint if available
+  // but for general use select_account is the most reliable one to keep the window open
+});
 
 // Firestore Error Handling
 export enum OperationType {

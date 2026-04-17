@@ -29,7 +29,7 @@ export default function Auth() {
       } else {
         // Handle specific Firebase error codes or friendly messages
         if (result.error?.includes('popup-closed-by-user')) {
-          setError('The sign-in popup was closed before completing. Please try again.');
+          setError('The sign-in popup was closed too early. Please ensure you are not using "Private/Incognito" mode and disable any AdBlockers for this site.');
         } else if (result.error?.includes('cancelled-by-user')) {
           setError('Sign-in was cancelled. Please try again.');
         } else {
