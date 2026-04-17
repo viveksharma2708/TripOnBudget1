@@ -1,20 +1,32 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
-import firebaseConfig from '../firebase-applet-config.json';
+import firebaseAppletConfig from '../firebase-applet-config.json';
+
+// Support for Vercel / Production environment variables
+const firebaseConfig = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseAppletConfig.apiKey,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseAppletConfig.authDomain,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseAppletConfig.projectId,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || firebaseAppletConfig.storageBucket,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseAppletConfig.messagingSenderId,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID || firebaseAppletConfig.appId,
+  firestoreDatabaseId: import.meta.env.VITE_FIREBASE_DATABASE_ID || firebaseAppletConfig.firestoreDatabaseId,
+};
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+// Force local persistence for better cross-origin reliability
+setPersistence(auth, browserLocalPersistence).catch(err => console.error("Persistence error:", err));
+
 export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 
 // Customizing Google Provider for better popup reliability
 export const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ 
   prompt: 'select_account',
-  // Some browsers handle popups better if we hint the login hint if available
-  // but for general use select_account is the most reliable one to keep the window open
 });
 
 // Firestore Error Handling

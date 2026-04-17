@@ -145,8 +145,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('Google Auth Error:', err);
       // Simplify error message for UI while keeping the error code for detection
       let msg = `[${err.code || 'error'}] ${err.message || 'Failed to sign in with Google'}`;
+      
+      const currentHost = window.location.hostname;
+      const isVercel = currentHost.includes('vercel.app');
+
       if (err.code === 'auth/popup-closed-by-user') {
-        msg = 'auth/popup-closed-by-user: The sign-in popup was closed before completion. Please disable any popup blockers and try again.';
+        msg = `auth/popup-closed-by-user: The sign-in popup was closed before completion. \n\nIMPORTANT: If you are on Vercel, you MUST add "${currentHost}" and "${currentHost.split('.')[0] + '.firebaseapp.com'}" to your "Authorized Domains" in the Firebase Console (Authentication > Settings).`;
+      } else if (err.code === 'auth/unauthorized-domain') {
+        msg = `auth/unauthorized-domain: This domain (${currentHost}) is not authorized in Firebase. Please add it to the Authorized Domains list in your Firebase Console.`;
       } else if (err.code === 'auth/popup-blocked') {
         msg = 'auth/popup-blocked: The sign-in popup was blocked by your browser. Please allow popups for this site.';
       }

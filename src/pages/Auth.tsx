@@ -28,9 +28,7 @@ export default function Auth() {
         navigate(returnTo);
       } else {
         // Handle specific Firebase error codes or friendly messages
-        if (result.error?.includes('popup-closed-by-user')) {
-          setError('The sign-in popup was closed too early. Please ensure you are not using "Private/Incognito" mode and disable any AdBlockers for this site.');
-        } else if (result.error?.includes('cancelled-by-user')) {
+        if (result.error?.includes('cancelled-by-user')) {
           setError('Sign-in was cancelled. Please try again.');
         } else {
           setError(result.error || 'Failed to sign in with Google');
@@ -172,7 +170,7 @@ export default function Auth() {
             </div>
 
             {error && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm text-center">
+              <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm text-center whitespace-pre-wrap">
                 {error}
               </div>
             )}
