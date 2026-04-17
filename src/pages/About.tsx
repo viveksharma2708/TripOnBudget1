@@ -74,7 +74,7 @@ export default function About() {
         <p className="text-lg text-gray-600 leading-relaxed">
           By partnering directly with local hotels, guides, and transport providers, we cut out the middlemen. 
           This allows us to offer you the exact same premium experiences at a fraction of the cost. 
-          Today, we've helped over 10,000 travelers discover new destinations without breaking the bank.
+          Today, we've helped over 1000+ travelers discover new destinations without breaking the bank.
         </p>
       </div>
 
