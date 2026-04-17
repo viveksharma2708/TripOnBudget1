@@ -5,19 +5,27 @@ import { useBookings } from '../context/BookingContext';
 import { Calendar, Users, CreditCard, Clock, MapPin } from 'lucide-react';
 
 export default function UserDashboard() {
-  const { user } = useAuth();
-  const { bookings } = useBookings();
+  const { user, loading: authLoading } = useAuth();
+  const { bookings, loading: bookingsLoading } = useBookings();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!user) {
+    if (!authLoading && !user) {
       navigate('/auth');
     }
-  }, [user, navigate]);
+  }, [user, navigate, authLoading]);
+
+  if (authLoading || bookingsLoading) {
+    return (
+      <div className="pt-24 pb-20 flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
 
   if (!user) return null;
 
-  const userBookings = bookings.filter(b => b.userId === user.id);
+  const userBookings = bookings; // Context already filters for typical users if not admin
 
   return (
     <div className="pt-24 pb-20 bg-gray-50 min-h-screen">

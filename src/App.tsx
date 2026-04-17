@@ -11,9 +11,11 @@ import { BookingProvider } from './context/BookingContext';
 import { TestimonialProvider } from './context/TestimonialContext';
 import { GalleryProvider } from './context/GalleryContext';
 import Layout from './components/layout/Layout';
+import ScrollToTop from './components/ScrollToTop';
 import Home from './pages/Home';
 import Packages from './pages/Packages';
 import PackageDetail from './pages/PackageDetail';
+import BookingConfirmation from './pages/BookingConfirmation';
 import About from './pages/About';
 import Contact from './pages/Contact';
 import Blog from './pages/Blog';
@@ -32,11 +34,13 @@ export default function App() {
             <InquiryProvider>
               <BookingProvider>
                 <Router>
+                  <ScrollToTop />
                   <Routes>
                     <Route path="/" element={<Layout />}>
                       <Route index element={<Home />} />
                       <Route path="packages" element={<Packages />} />
                       <Route path="packages/:id" element={<PackageDetail />} />
+                      <Route path="booking-confirmation" element={<BookingConfirmation />} />
                       <Route path="about" element={<About />} />
                       <Route path="contact" element={<Contact />} />
                       <Route path="blog" element={<Blog />} />

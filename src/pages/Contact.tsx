@@ -1,5 +1,6 @@
 import { useState, FormEvent, useEffect } from 'react';
 import { motion } from 'motion/react';
+import { Helmet } from 'react-helmet-async';
 import { MapPin, Phone, Mail, MessageCircle, Send, CheckCircle2 } from 'lucide-react';
 import { useInquiries } from '../context/InquiryContext';
 import { useAuth } from '../context/AuthContext';
@@ -27,7 +28,7 @@ export default function Contact() {
     }
   }, [user]);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
     if (!user) {
@@ -43,7 +44,7 @@ export default function Contact() {
     setError('');
     
     // Add inquiry to context (Admin can view this in Dashboard)
-    addInquiry({
+    await addInquiry({
       name: formData.name,
       email: formData.email,
       phone: formData.phone || 'N/A',
@@ -69,6 +70,12 @@ export default function Contact() {
 
   return (
     <div className="pt-24 pb-20 bg-gray-50 min-h-screen">
+      <Helmet>
+        <title>Contact Us | TripOnBudget</title>
+        <meta name="description" content="Get in touch with TripOnBudget. We're here to help you plan your next adventure." />
+        <meta property="og:title" content="Contact Us | TripOnBudget" />
+        <meta property="og:description" content="Get in touch with TripOnBudget. We're here to help you plan your next adventure." />
+      </Helmet>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-heading font-bold text-gray-900 mb-4">Get in Touch</h1>

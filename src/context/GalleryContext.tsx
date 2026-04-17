@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { supabase } from '../supabase';
 
 export type GalleryItem = {
   id: string;
@@ -36,42 +37,88 @@ const initialGallery: GalleryItem[] = [
 
 type GalleryContextType = {
   galleryItems: GalleryItem[];
-  addGalleryItem: (item: Omit<GalleryItem, 'id'>) => void;
-  updateGalleryItem: (id: string, item: Omit<GalleryItem, 'id'>) => void;
-  removeGalleryItem: (id: string) => void;
+  addGalleryItem: (item: Omit<GalleryItem, 'id'>) => Promise<void>;
+  updateGalleryItem: (id: string, item: Omit<GalleryItem, 'id'>) => Promise<void>;
+  removeGalleryItem: (id: string) => Promise<void>;
+  loading: boolean;
 };
 
 const GalleryContext = createContext<GalleryContextType | undefined>(undefined);
 
 export function GalleryProvider({ children }: { children: ReactNode }) {
-  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>(() => {
-    const saved = localStorage.getItem('gallery');
-    return saved ? JSON.parse(saved) : initialGallery;
-  });
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const saveGallery = (newGallery: GalleryItem[]) => {
-    setGalleryItems(newGallery);
-    localStorage.setItem('gallery', JSON.stringify(newGallery));
+  const fetchGallery = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('gallery')
+      .select('*')
+      .order('id', { ascending: true });
+
+    if (!error && data) {
+      if (data.length === 0) {
+        // Seed initial data
+        const seedData = initialGallery.map(({ id, ...rest }) => ({ ...rest }));
+        const { data: seededData, error: seedError } = await supabase
+          .from('gallery')
+          .insert(seedData)
+          .select();
+        
+        if (!seedError && seededData) {
+          setGalleryItems(seededData as any);
+        }
+      } else {
+        setGalleryItems(data as any);
+      }
+    }
+    setLoading(false);
   };
 
-  const addGalleryItem = (item: Omit<GalleryItem, 'id'>) => {
-    const newItem = {
-      ...item,
-      id: `gal-${Date.now()}`
-    };
-    saveGallery([newItem, ...galleryItems]);
+  useEffect(() => {
+    fetchGallery();
+  }, []);
+
+  const addGalleryItem = async (item: Omit<GalleryItem, 'id'>) => {
+    const { error } = await supabase
+      .from('gallery')
+      .insert([item]);
+
+    if (error) {
+      console.error('Error adding gallery item:', error.message);
+    } else {
+      fetchGallery();
+    }
   };
 
-  const updateGalleryItem = (id: string, updatedItem: Omit<GalleryItem, 'id'>) => {
-    saveGallery(galleryItems.map(g => g.id === id ? { ...updatedItem, id } : g));
+  const updateGalleryItem = async (id: string, updatedItem: Omit<GalleryItem, 'id'>) => {
+    const { error } = await supabase
+      .from('gallery')
+      .update(updatedItem)
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error updating gallery item:', error.message);
+    } else {
+      fetchGallery();
+    }
   };
 
-  const removeGalleryItem = (id: string) => {
-    saveGallery(galleryItems.filter(g => g.id !== id));
+  const removeGalleryItem = async (id: string) => {
+    const { error } = await supabase
+      .from('gallery')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error removing gallery item:', error.message);
+    } else {
+      fetchGallery();
+    }
   };
 
   return (
-    <GalleryContext.Provider value={{ galleryItems, addGalleryItem, updateGalleryItem, removeGalleryItem }}>
+    <GalleryContext.Provider value={{ galleryItems, addGalleryItem, updateGalleryItem, removeGalleryItem, loading }}>
       {children}
     </GalleryContext.Provider>
   );

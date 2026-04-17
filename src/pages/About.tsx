@@ -1,9 +1,17 @@
 import { motion } from 'motion/react';
+import { Helmet } from 'react-helmet-async';
 import { Shield, Heart, Globe, Users } from 'lucide-react';
 
 export default function About() {
   return (
     <div className="pt-24 pb-20 bg-white">
+      <Helmet>
+        <title>About Us | TripOnBudget</title>
+        <meta name="description" content="Learn more about TripOnBudget. We believe that exploring the world shouldn't cost a fortune. We curate premium travel experiences at prices that make sense." />
+        <meta property="og:title" content="About Us | TripOnBudget" />
+        <meta property="og:description" content="Learn more about TripOnBudget. We believe that exploring the world shouldn't cost a fortune. We curate premium travel experiences at prices that make sense." />
+      </Helmet>
+
       {/* Hero Section */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20 text-center">
         <motion.h1 

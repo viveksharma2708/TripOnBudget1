@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { Helmet } from 'react-helmet-async';
 import { MapPin, Calendar, Star, CheckCircle2, XCircle, Clock, Users, MessageCircle, X } from 'lucide-react';
 import { usePackages } from '../context/PackageContext';
 import { useAuth } from '../context/AuthContext';
@@ -20,7 +21,12 @@ export default function PackageDetail() {
   const [travelers, setTravelers] = useState(1);
   const [date, setDate] = useState('');
   const [bookingEmail, setBookingEmail] = useState(user?.email || '');
+  const [bookingName, setBookingName] = useState(user?.name || '');
   const [bookingError, setBookingError] = useState('');
+  const [dateError, setDateError] = useState('');
+  const [travelersError, setTravelersError] = useState('');
+  const [emailError, setEmailError] = useState('');
+  const [nameError, setNameError] = useState('');
 
   useEffect(() => {
     if (searchParams.get('book') === 'true') {
@@ -31,6 +37,7 @@ export default function PackageDetail() {
   useEffect(() => {
     if (user) {
       setBookingEmail(user.email);
+      setBookingName(user.name);
     }
   }, [user]);
 
@@ -51,34 +58,76 @@ export default function PackageDetail() {
     setIsBookingModalOpen(true);
   };
 
-  const submitBooking = (e: React.FormEvent) => {
+  const submitBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     setBookingError('');
+    setDateError('');
+    setTravelersError('');
+    setEmailError('');
+    setNameError('');
     
-    if (user && bookingEmail !== user.email) {
-      setBookingError('Booking email must match your logged-in account email.');
-      return;
+    let isValid = true;
+
+    if (!bookingName.trim()) {
+      setNameError('Full name is required.');
+      isValid = false;
     }
+
+    if (!date) {
+      setDateError('Please select a travel date.');
+      isValid = false;
+    } else {
+      const selectedDate = new Date(date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate < today) {
+        setDateError('Travel date must be in the future.');
+        isValid = false;
+      }
+    }
+
+    if (!travelers || travelers < 1) {
+      setTravelersError('Number of travelers must be at least 1.');
+      isValid = false;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!bookingEmail) {
+      setEmailError('Email address is required.');
+      isValid = false;
+    } else if (!emailRegex.test(bookingEmail)) {
+      setEmailError('Please enter a valid email address.');
+      isValid = false;
+    } else if (user && bookingEmail !== user.email) {
+      setEmailError('Booking email must match your logged-in account email.');
+      isValid = false;
+    }
+
+    if (!isValid) return;
     
+    // Fake name detection: contains numbers, dummy words, or 1/2 char repetive names
+    const hasNumbers = /\d/.test(bookingName);
+    const isDummyWord = ['test', 'fake', 'dummy', 'none', 'null', 'abc'].includes(bookingName.trim().toLowerCase());
+    const isTooShort = bookingName.trim().length < 3;
+    const isFakeName = hasNumbers || isDummyWord || isTooShort;
+
     if (user && pkg) {
-      addBooking({
+      const bookingData = {
         userId: user.id,
-        userName: user.name,
+        userName: bookingName,
         userEmail: user.email,
         packageId: pkg.id,
         packageTitle: pkg.title,
         date,
         travelers,
-        totalAmount: pkg.price * travelers
-      });
-    }
-
-    setBookingSuccess(true);
-    setTimeout(() => {
+        totalAmount: pkg.price * travelers,
+        isFakeName
+      };
+      await addBooking(bookingData);
+      
       setIsBookingModalOpen(false);
-      setBookingSuccess(false);
-      navigate(`/packages/${id}`, { replace: true });
-    }, 3000);
+      navigate('/booking-confirmation', { state: { bookingData } });
+    }
   };
 
   const handleWhatsApp = () => {
@@ -92,6 +141,14 @@ export default function PackageDetail() {
 
   return (
     <div className="pt-20 pb-20 bg-gray-50">
+      <Helmet>
+        <title>{pkg.title} | TripOnBudget</title>
+        <meta name="description" content={pkg.description.substring(0, 160)} />
+        <meta property="og:title" content={`${pkg.title} | TripOnBudget`} />
+        <meta property="og:description" content={pkg.description.substring(0, 160)} />
+        <meta property="og:image" content={pkg.image} />
+      </Helmet>
+
       {/* Hero Image */}
       <div className="relative h-[50vh] min-h-[400px] w-full">
         <img 
@@ -298,35 +355,18 @@ export default function PackageDetail() {
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="bg-white rounded-3xl shadow-2xl w-full max-w-lg relative z-10 overflow-hidden"
             >
-              {bookingSuccess ? (
-                <div className="p-12 text-center">
-                  <div className="w-20 h-20 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <CheckCircle2 className="w-10 h-10" />
-                  </div>
-                  <h3 className="text-3xl font-heading font-bold text-gray-900 mb-4">Booking Confirmed!</h3>
-                  <p className="text-gray-600 mb-8">
-                    Thank you for booking with TripOnBudget. We have sent the confirmation details to your email.
-                  </p>
+              <>
+                <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                  <h3 className="text-2xl font-heading font-bold text-gray-900">Complete Booking</h3>
                   <button 
                     onClick={() => setIsBookingModalOpen(false)}
-                    className="bg-gray-900 text-white px-8 py-3 rounded-xl font-medium hover:bg-gray-800 transition-colors"
+                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
                   >
-                    Close
+                    <X className="w-6 h-6" />
                   </button>
                 </div>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                    <h3 className="text-2xl font-heading font-bold text-gray-900">Complete Booking</h3>
-                    <button 
-                      onClick={() => setIsBookingModalOpen(false)}
-                      className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
-                    >
-                      <X className="w-6 h-6" />
-                    </button>
-                  </div>
-                  
-                  <form onSubmit={submitBooking} className="p-6 space-y-6">
+                
+                <form onSubmit={submitBooking} className="p-6 space-y-6">
                     {bookingError && (
                       <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium">
                         {bookingError}
@@ -344,9 +384,10 @@ export default function PackageDetail() {
                           type="date" 
                           required
                           value={date}
-                          onChange={(e) => setDate(e.target.value)}
-                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none"
+                          onChange={(e) => { setDate(e.target.value); setDateError(''); }}
+                          className={`w-full px-4 py-3 rounded-xl border ${dateError ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-primary-500'} focus:ring-2 outline-none transition-colors`}
                         />
+                        {dateError && <p className="text-red-500 text-xs mt-1">{dateError}</p>}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Travelers</label>
@@ -355,9 +396,10 @@ export default function PackageDetail() {
                           min="1"
                           required
                           value={travelers}
-                          onChange={(e) => setTravelers(parseInt(e.target.value))}
-                          className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none"
+                          onChange={(e) => { setTravelers(parseInt(e.target.value)); setTravelersError(''); }}
+                          className={`w-full px-4 py-3 rounded-xl border ${travelersError ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-primary-500'} focus:ring-2 outline-none transition-colors`}
                         />
+                        {travelersError && <p className="text-red-500 text-xs mt-1">{travelersError}</p>}
                       </div>
                     </div>
 
@@ -366,9 +408,11 @@ export default function PackageDetail() {
                       <input 
                         type="text" 
                         required
-                        defaultValue={user?.name}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none"
+                        value={bookingName}
+                        onChange={(e) => { setBookingName(e.target.value); setNameError(''); }}
+                        className={`w-full px-4 py-3 rounded-xl border ${nameError ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-primary-500'} focus:ring-2 outline-none transition-colors`}
                       />
+                      {nameError && <p className="text-red-500 text-xs mt-1">{nameError}</p>}
                     </div>
 
                     <div>
@@ -377,9 +421,10 @@ export default function PackageDetail() {
                         type="email" 
                         required
                         value={bookingEmail}
-                        onChange={(e) => setBookingEmail(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none"
+                        onChange={(e) => { setBookingEmail(e.target.value); setEmailError(''); }}
+                        className={`w-full px-4 py-3 rounded-xl border ${emailError ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-primary-500'} focus:ring-2 outline-none transition-colors`}
                       />
+                      {emailError && <p className="text-red-500 text-xs mt-1">{emailError}</p>}
                     </div>
 
                     <div className="pt-4 border-t border-gray-100">
@@ -396,7 +441,6 @@ export default function PackageDetail() {
                     </div>
                   </form>
                 </>
-              )}
             </motion.div>
           </div>
         )}

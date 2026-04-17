@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePackages } from '../context/PackageContext';
 import { useAuth } from '../context/AuthContext';
@@ -9,12 +9,12 @@ import { useTestimonials } from '../context/TestimonialContext';
 import { useGallery } from '../context/GalleryContext';
 
 export default function AdminDashboard() {
-  const { packages, addPackage, updatePackage, removePackage } = usePackages();
-  const { user, allUsers } = useAuth();
-  const { inquiries, deleteInquiry } = useInquiries();
-  const { bookings, updateBookingStatus, updateBooking } = useBookings();
-  const { testimonials, addTestimonial, updateTestimonial, removeTestimonial } = useTestimonials();
-  const { galleryItems, addGalleryItem, updateGalleryItem, removeGalleryItem } = useGallery();
+  const { packages, addPackage, updatePackage, removePackage, loading: packagesLoading } = usePackages();
+  const { user, allUsers, loading: authLoading } = useAuth();
+  const { inquiries, deleteInquiry, loading: inquiriesLoading } = useInquiries();
+  const { bookings, updateBookingStatus, updateBooking, loading: bookingsLoading } = useBookings();
+  const { testimonials, addTestimonial, updateTestimonial, removeTestimonial, loading: testimonialsLoading } = useTestimonials();
+  const { galleryItems, addGalleryItem, updateGalleryItem, removeGalleryItem, loading: galleryLoading } = useGallery();
   const navigate = useNavigate();
   
   const [activeTab, setActiveTab] = useState<'packages' | 'users' | 'inquiries' | 'bookings' | 'testimonials' | 'gallery'>('packages');
@@ -47,10 +47,10 @@ export default function AdminDashboard() {
   });
 
   useEffect(() => {
-    if (!user || user.role !== 'admin') {
+    if (!authLoading && (!user || user.role !== 'admin')) {
       navigate('/');
     }
-  }, [user, navigate]);
+  }, [user, navigate, authLoading]);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -68,27 +68,33 @@ export default function AdminDashboard() {
     video: ''
   });
 
+  if (authLoading) {
+    return (
+      <div className="pt-24 pb-20 flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
+
   if (!user || user.role !== 'admin') return null;
 
   const serializeItinerary = (itinerary: any[]) => {
-    if (!itinerary) return '';
-    return itinerary.map(item => `Day ${item.day}: ${item.title} | ${item.description}`).join('\n');
+    if (!itinerary) return '[]';
+    try {
+      return JSON.stringify(itinerary, null, 2);
+    } catch {
+      return '[]';
+    }
   };
 
   const parseItinerary = (text: string) => {
     if (!text.trim()) return [];
-    return text.split('\n').filter(line => line.trim()).map((line, index) => {
-      const match = line.match(/Day \d+:\s*(.*?)\s*\|\s*(.*)/);
-      if (match) {
-        return { day: index + 1, title: match[1].trim(), description: match[2].trim() };
-      }
-      // Fallback if format doesn't match
-      const parts = line.split('|');
-      if (parts.length >= 2) {
-        return { day: index + 1, title: parts[0].replace(/Day \d+:/, '').trim(), description: parts.slice(1).join('|').trim() };
-      }
-      return { day: index + 1, title: `Day ${index + 1}`, description: line.trim() };
-    });
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      console.error("Failed to parse itinerary JSON", e);
+      return [];
+    }
   };
 
   const handleEdit = (pkg: any) => {
@@ -104,12 +110,14 @@ export default function AdminDashboard() {
       description: pkg.description,
       inclusions: pkg.inclusions ? pkg.inclusions.join('\n') : '',
       exclusions: pkg.exclusions ? pkg.exclusions.join('\n') : '',
-      itinerary: serializeItinerary(pkg.itinerary)
+      itinerary: serializeItinerary(pkg.itinerary),
+      gallery: pkg.gallery ? pkg.gallery.join('\n') : '',
+      video: pkg.video || ''
     });
     setIsAdding(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Create a basic package object
@@ -126,19 +134,21 @@ export default function AdminDashboard() {
       description: formData.description,
       itinerary: parseItinerary(formData.itinerary),
       inclusions: formData.inclusions.split('\n').filter(i => i.trim()),
-      exclusions: formData.exclusions.split('\n').filter(e => e.trim())
+      exclusions: formData.exclusions.split('\n').filter(e => e.trim()),
+      gallery: formData.gallery.split('\n').filter(url => url.trim()),
+      video: formData.video.trim()
     };
 
     if (editingId) {
-      updatePackage(editingId, newPkg);
+      await updatePackage(editingId, newPkg);
     } else {
-      addPackage(newPkg);
+      await addPackage(newPkg);
     }
     
     setIsAdding(false);
     setEditingId(null);
     setFormData({
-      title: '', location: '', duration: '', price: '', originalPrice: '', image: '', category: 'Domestic', description: '', inclusions: '', exclusions: '', itinerary: ''
+      title: '', location: '', duration: '', price: '', originalPrice: '', image: '', category: 'Domestic', description: '', inclusions: '', exclusions: '', itinerary: '', gallery: '', video: ''
     });
   };
 
@@ -146,7 +156,7 @@ export default function AdminDashboard() {
     setIsAdding(false);
     setEditingId(null);
     setFormData({
-      title: '', location: '', duration: '', price: '', originalPrice: '', image: '', category: 'Domestic', description: '', inclusions: '', exclusions: '', itinerary: ''
+      title: '', location: '', duration: '', price: '', originalPrice: '', image: '', category: 'Domestic', description: '', inclusions: '', exclusions: '', itinerary: '', gallery: '', video: ''
     });
   };
 
@@ -161,12 +171,12 @@ export default function AdminDashboard() {
     setIsAddingTestimonial(true);
   };
 
-  const handleSubmitTestimonial = (e: React.FormEvent) => {
+  const handleSubmitTestimonial = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingTestimonialId) {
-      updateTestimonial(editingTestimonialId, testimonialFormData);
+      await updateTestimonial(editingTestimonialId, testimonialFormData);
     } else {
-      addTestimonial(testimonialFormData);
+      await addTestimonial(testimonialFormData);
     }
     setIsAddingTestimonial(false);
     setEditingTestimonialId(null);
@@ -189,12 +199,12 @@ export default function AdminDashboard() {
     setIsAddingGallery(true);
   };
 
-  const handleSubmitGallery = (e: React.FormEvent) => {
+  const handleSubmitGallery = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingGalleryId) {
-      updateGalleryItem(editingGalleryId, galleryFormData);
+      await updateGalleryItem(editingGalleryId, galleryFormData);
     } else {
-      addGalleryItem(galleryFormData);
+      await addGalleryItem(galleryFormData);
     }
     setIsAddingGallery(false);
     setEditingGalleryId(null);
@@ -217,10 +227,10 @@ export default function AdminDashboard() {
     });
   };
 
-  const handleSubmitBooking = (e: React.FormEvent) => {
+  const handleSubmitBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     if (editingBookingId) {
-      updateBooking(editingBookingId, bookingFormData);
+      await updateBooking(editingBookingId, bookingFormData);
       setEditingBookingId(null);
     }
   };
@@ -376,12 +386,16 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Gallery URLs (One per line)</label>
+                  <textarea rows={3} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none resize-none" value={formData.gallery} onChange={e => setFormData({...formData, gallery: e.target.value})} placeholder="https://image1...&#10;https://image2..."></textarea>
+                </div>
+                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                   <textarea required rows={3} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none resize-none" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} placeholder="Brief description of the package..."></textarea>
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Itinerary (Format: Day 1: Title | Description)</label>
-                  <textarea rows={4} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none resize-none" value={formData.itinerary} onChange={e => setFormData({...formData, itinerary: e.target.value})} placeholder="Day 1: Arrival | Welcome to your destination...&#10;Day 2: Sightseeing | Explore the local attractions..."></textarea>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Itinerary (JSON format)</label>
+                  <textarea rows={6} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none font-mono text-sm" value={formData.itinerary} onChange={e => setFormData({...formData, itinerary: e.target.value})} placeholder="[&#10;  {&#10;    &quot;day&quot;: 1,&#10;    &quot;title&quot;: &quot;Arrival&quot;,&#10;    &quot;description&quot;: &quot;Welcome to your destination...&quot;&#10;  }&#10;]"></textarea>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Inclusions (One per line)</label>
@@ -440,7 +454,7 @@ export default function AdminDashboard() {
                             <Edit2 className="w-5 h-5" />
                           </button>
                           <button 
-                            onClick={() => removePackage(pkg.id)}
+                            onClick={async () => await removePackage(pkg.id)}
                             className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                             title="Delete Package"
                           >
@@ -511,7 +525,7 @@ export default function AdminDashboard() {
               inquiries.map((inquiry) => (
                 <div key={inquiry.id} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 relative">
                   <button 
-                    onClick={() => deleteInquiry(inquiry.id)}
+                    onClick={async () => await deleteInquiry(inquiry.id)}
                     className="absolute top-6 right-6 text-gray-400 hover:text-red-500 transition-colors"
                     title="Delete Inquiry"
                   >
@@ -608,12 +622,16 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody>
-                  {bookings.map((b) => (
-                    <tr key={b.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                  {bookings.map((b) => {
+                    const isFake = b.isFakeName || !b.userEmail.includes('@') || b.userEmail.endsWith('fake.com');
+                    return (
+                    <tr key={b.id} className={`border-b border-gray-50 transition-colors ${isFake ? 'bg-red-50 hover:bg-red-100' : 'hover:bg-gray-50/50'}`}>
                       <td className="p-4 text-gray-500 text-sm">#{b.id.slice(-6)}</td>
                       <td className="p-4">
-                        <div className="font-medium text-gray-900">{b.userName}</div>
-                        <div className="text-sm text-gray-500">{b.userEmail}</div>
+                        <div className={`font-medium ${isFake ? 'text-red-900' : 'text-gray-900'}`}>
+                          {b.userName} {isFake && <span className="ml-2 text-xs bg-red-200 text-red-800 px-2 py-0.5 rounded-full">Fake</span>}
+                        </div>
+                        <div className={`text-sm ${isFake ? 'text-red-700' : 'text-gray-500'}`}>{b.userEmail}</div>
                       </td>
                       <td className="p-4 font-medium text-gray-900">{b.packageTitle}</td>
                       <td className="p-4 text-gray-600">{b.date}</td>
@@ -631,8 +649,8 @@ export default function AdminDashboard() {
                       <td className="p-4 flex items-center gap-2">
                         <button 
                           onClick={() => handleEditBooking(b)}
-                          className="p-1.5 text-gray-500 hover:text-primary-600 bg-gray-50 hover:bg-primary-50 rounded-lg transition-colors"
-                          title="Edit Booking"
+                          className="p-1.5 text-blue-500 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                          title="Edit Booking details"
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
@@ -642,9 +660,23 @@ export default function AdminDashboard() {
                         >
                           <Mail className="w-4 h-4" /> Send Confirmation
                         </a>
+                        {b.status !== 'cancelled' && (
+                          <button 
+                            onClick={async () => {
+                              if (confirm('Are you sure you want to cancel this booking?')) {
+                                await updateBookingStatus(b.id, 'cancelled');
+                              }
+                            }}
+                            className="p-1.5 text-red-500 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors ml-auto"
+                            title="Cancel Booking"
+                          >
+                            <Trash2 className="w-4 h-4" /> Cancel
+                          </button>
+                        )}
                       </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                   {bookings.length === 0 && (
                     <tr>
                       <td colSpan={8} className="p-8 text-center text-gray-500">
@@ -716,7 +748,7 @@ export default function AdminDashboard() {
                     <button onClick={() => handleEditTestimonial(test)} className="p-2 text-gray-400 hover:text-primary-600 bg-gray-50 hover:bg-primary-50 rounded-lg transition-colors">
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button onClick={() => removeTestimonial(test.id)} className="p-2 text-gray-400 hover:text-red-600 bg-gray-50 hover:bg-red-50 rounded-lg transition-colors">
+                    <button onClick={async () => await removeTestimonial(test.id)} className="p-2 text-gray-400 hover:text-red-600 bg-gray-50 hover:bg-red-50 rounded-lg transition-colors">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -799,7 +831,7 @@ export default function AdminDashboard() {
                     <button onClick={() => handleEditGallery(item)} className="p-2 text-gray-700 hover:text-primary-600 bg-white/90 hover:bg-white rounded-lg transition-colors shadow-sm" title="Edit Media">
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button onClick={() => removeGalleryItem(item.id)} className="p-2 text-gray-700 hover:text-red-600 bg-white/90 hover:bg-white rounded-lg transition-colors shadow-sm" title="Delete Media">
+                    <button onClick={async () => await removeGalleryItem(item.id)} className="p-2 text-gray-700 hover:text-red-600 bg-white/90 hover:bg-white rounded-lg transition-colors shadow-sm" title="Delete Media">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>

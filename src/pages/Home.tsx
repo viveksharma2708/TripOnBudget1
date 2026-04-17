@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
+import { Helmet } from 'react-helmet-async';
 import { Search, MapPin, Calendar, DollarSign, Star, ArrowRight } from 'lucide-react';
 import { usePackages } from '../context/PackageContext';
 import { useTestimonials } from '../context/TestimonialContext';
@@ -30,6 +31,13 @@ export default function Home() {
 
   return (
     <div className="w-full">
+      <Helmet>
+        <title>TripOnBudget | Affordable Travel Packages</title>
+        <meta name="description" content="Discover the best budget-friendly travel packages for your next adventure. Explore India and beyond with TripOnBudget." />
+        <meta property="og:title" content="TripOnBudget | Affordable Travel Packages" />
+        <meta property="og:description" content="Discover the best budget-friendly travel packages for your next adventure. Explore India and beyond with TripOnBudget." />
+      </Helmet>
+
       {/* Hero Section */}
       <section className="relative h-[90vh] min-h-[600px] flex items-center justify-center">
         {/* Background Image with Overlay */}

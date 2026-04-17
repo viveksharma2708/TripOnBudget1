@@ -1,5 +1,6 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { testimonials as initialTestimonials } from '../data/mockData';
+import { supabase } from '../supabase';
 
 export type Testimonial = {
   id: string;
@@ -11,42 +12,88 @@ export type Testimonial = {
 
 type TestimonialContextType = {
   testimonials: Testimonial[];
-  addTestimonial: (testimonial: Omit<Testimonial, 'id'>) => void;
-  updateTestimonial: (id: string, testimonial: Omit<Testimonial, 'id'>) => void;
-  removeTestimonial: (id: string) => void;
+  addTestimonial: (testimonial: Omit<Testimonial, 'id'>) => Promise<void>;
+  updateTestimonial: (id: string, testimonial: Omit<Testimonial, 'id'>) => Promise<void>;
+  removeTestimonial: (id: string) => Promise<void>;
+  loading: boolean;
 };
 
 const TestimonialContext = createContext<TestimonialContextType | undefined>(undefined);
 
 export function TestimonialProvider({ children }: { children: ReactNode }) {
-  const [testimonials, setTestimonials] = useState<Testimonial[]>(() => {
-    const saved = localStorage.getItem('testimonials');
-    return saved ? JSON.parse(saved) : initialTestimonials;
-  });
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const saveTestimonials = (newTestimonials: Testimonial[]) => {
-    setTestimonials(newTestimonials);
-    localStorage.setItem('testimonials', JSON.stringify(newTestimonials));
+  const fetchTestimonials = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('testimonials')
+      .select('*')
+      .order('id', { ascending: true });
+
+    if (!error && data) {
+      if (data.length === 0) {
+        // Seed initial data
+        const seedData = initialTestimonials.map(({ id, ...rest }) => ({ ...rest }));
+        const { data: seededData, error: seedError } = await supabase
+          .from('testimonials')
+          .insert(seedData)
+          .select();
+        
+        if (!seedError && seededData) {
+          setTestimonials(seededData as any);
+        }
+      } else {
+        setTestimonials(data as any);
+      }
+    }
+    setLoading(false);
   };
 
-  const addTestimonial = (testimonial: Omit<Testimonial, 'id'>) => {
-    const newTestimonial = {
-      ...testimonial,
-      id: `test-${Date.now()}`
-    };
-    saveTestimonials([...testimonials, newTestimonial]);
+  useEffect(() => {
+    fetchTestimonials();
+  }, []);
+
+  const addTestimonial = async (testimonial: Omit<Testimonial, 'id'>) => {
+    const { error } = await supabase
+      .from('testimonials')
+      .insert([testimonial]);
+
+    if (error) {
+      console.error('Error adding testimonial:', error.message);
+    } else {
+      fetchTestimonials();
+    }
   };
 
-  const updateTestimonial = (id: string, updatedTestimonial: Omit<Testimonial, 'id'>) => {
-    saveTestimonials(testimonials.map(t => t.id === id ? { ...updatedTestimonial, id } : t));
+  const updateTestimonial = async (id: string, updatedTestimonial: Omit<Testimonial, 'id'>) => {
+    const { error } = await supabase
+      .from('testimonials')
+      .update(updatedTestimonial)
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error updating testimonial:', error.message);
+    } else {
+      fetchTestimonials();
+    }
   };
 
-  const removeTestimonial = (id: string) => {
-    saveTestimonials(testimonials.filter(t => t.id !== id));
+  const removeTestimonial = async (id: string) => {
+    const { error } = await supabase
+      .from('testimonials')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error removing testimonial:', error.message);
+    } else {
+      fetchTestimonials();
+    }
   };
 
   return (
-    <TestimonialContext.Provider value={{ testimonials, addTestimonial, updateTestimonial, removeTestimonial }}>
+    <TestimonialContext.Provider value={{ testimonials, addTestimonial, updateTestimonial, removeTestimonial, loading }}>
       {children}
     </TestimonialContext.Provider>
   );

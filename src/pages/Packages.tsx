@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'motion/react';
+import { Helmet } from 'react-helmet-async';
 import { MapPin, Calendar, Star, Filter } from 'lucide-react';
 import { usePackages } from '../context/PackageContext';
 
@@ -63,6 +64,12 @@ export default function Packages() {
 
   return (
     <div className="pt-24 pb-20 min-h-screen bg-gray-50">
+      <Helmet>
+        <title>Travel Packages | TripOnBudget</title>
+        <meta name="description" content="Explore our wide range of budget-friendly travel packages. Filter by category, price, and destination to find your perfect trip." />
+        <meta property="og:title" content="Travel Packages | TripOnBudget" />
+        <meta property="og:description" content="Explore our wide range of budget-friendly travel packages. Filter by category, price, and destination to find your perfect trip." />
+      </Helmet>
       {/* Header */}
       <div className="bg-primary-600 text-white py-16 mb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
