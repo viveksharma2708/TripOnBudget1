@@ -10,7 +10,7 @@ import { useGallery } from '../context/GalleryContext';
 
 export default function AdminDashboard() {
   const { packages, addPackage, updatePackage, removePackage, loading: packagesLoading } = usePackages();
-  const { user, allUsers, loading: authLoading } = useAuth();
+  const { user, allUsers, deleteUserProfile, loading: authLoading } = useAuth();
   const { inquiries, deleteInquiry, loading: inquiriesLoading } = useInquiries();
   const { bookings, updateBookingStatus, updateBooking, loading: bookingsLoading } = useBookings();
   const { testimonials, addTestimonial, updateTestimonial, removeTestimonial, loading: testimonialsLoading } = useTestimonials();
@@ -487,6 +487,7 @@ export default function AdminDashboard() {
                     <th className="p-4 font-semibold text-gray-600">Email</th>
                     <th className="p-4 font-semibold text-gray-600">Role</th>
                     <th className="p-4 font-semibold text-gray-600">Joined Date</th>
+                    <th className="p-4 font-semibold text-gray-600 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -504,6 +505,21 @@ export default function AdminDashboard() {
                         </span>
                       </td>
                       <td className={`p-4 ${isFake ? 'text-red-700' : 'text-gray-600'}`}>{u.joinDate}</td>
+                      <td className="p-4 text-right">
+                        {u.id !== user?.id && (
+                          <button 
+                            onClick={async () => {
+                              if (window.confirm(`Are you sure you want to delete user ${u.name}? This will remove their profile from the database.`)) {
+                                await deleteUserProfile(u.id);
+                              }
+                            }}
+                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete User Record"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        )}
+                      </td>
                     </tr>
                     );
                   })}

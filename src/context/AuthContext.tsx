@@ -24,6 +24,7 @@ type AuthContextType = {
   signup: (email: string, name: string, password?: string) => Promise<{success: boolean; error?: string; requiresEmail?: boolean}>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<boolean>;
+  deleteUserProfile: (id: string) => Promise<void>;
   allUsers: User[];
   loading: boolean;
 };
@@ -192,8 +193,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const deleteUserProfile = async (id: string) => {
+    const path = `users/${id}`;
+    if (id === user?.id) {
+       console.warn("Admin Cannot delete themselves from the dashboard");
+       return;
+    }
+    try {
+      const { deleteDoc, doc } = await import('firebase/firestore');
+      await deleteDoc(doc(db, 'users', id));
+      setAllUsers(prev => prev.filter(u => u.id !== id));
+    } catch (e) {
+      handleFirestoreError(e, OperationType.DELETE, path);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, signup, logout, resetPassword, allUsers, loading }}>
+    <AuthContext.Provider value={{ user, login, signup, logout, resetPassword, deleteUserProfile, allUsers, loading }}>
       {loading ? (
         <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
