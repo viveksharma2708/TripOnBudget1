@@ -100,7 +100,15 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
   
   // Show alert for administrative visibility
   if (message.includes('permission-denied') || message.includes('Missing or insufficient permissions')) {
-    window.alert(`Security Error: You do not have permission to perform this ${operationType} operation on ${path}. Please ensure you are logged in with an admin account and authorized in the Firebase console.`);
+    let friendlyMessage = `Security Error: You don't have permission to ${operationType} at ${path}.`;
+    
+    if (path?.startsWith('users/') && operationType === OperationType.GET) {
+      friendlyMessage = `Your profile could not be loaded. This might be a temporary authentication sync issue. Please try signing out and back in.`;
+    } else if (path?.startsWith('bookings/') || path?.startsWith('inquiries/')) {
+      friendlyMessage = `You don't have administrative permissions to view these records. Please ensure you are logged in with an admin account.`;
+    }
+    
+    window.alert(friendlyMessage);
   } else {
     window.alert(`Database Error (${operationType}): ${message}`);
   }

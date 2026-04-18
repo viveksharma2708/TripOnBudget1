@@ -27,8 +27,12 @@ service cloud.firestore {
 
     // Collection: Users
     match /users/{userId} {
-      // Allow user to access their own doc or admins to access everything
-      allow read, write: if request.auth != null && (request.auth.uid == userId || isEmailAdmin() || isDocAdmin());
+      // Allow any authenticated user to manage their own document
+      // We check this first to avoid unnecessary lookups in isDocAdmin/isAdmin
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      // Allow administrators to manage other user documents
+      allow read, update, delete: if request.auth != null && request.auth.uid != userId && isAdmin();
     }
 
     // Collection: Packages, Gallery, Testimonials
