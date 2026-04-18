@@ -21,10 +21,12 @@ export default function PackageDetail() {
   const [travelers, setTravelers] = useState(1);
   const [bookingEmail, setBookingEmail] = useState(user?.email || '');
   const [bookingName, setBookingName] = useState(user?.name || '');
+  const [bookingPhone, setBookingPhone] = useState('');
   const [bookingError, setBookingError] = useState('');
   const [travelersError, setTravelersError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [nameError, setNameError] = useState('');
+  const [phoneError, setPhoneError] = useState('');
 
   useEffect(() => {
     if (searchParams.get('book') === 'true') {
@@ -62,6 +64,7 @@ export default function PackageDetail() {
     setTravelersError('');
     setEmailError('');
     setNameError('');
+    setPhoneError('');
     
     let isValid = true;
 
@@ -88,6 +91,16 @@ export default function PackageDetail() {
     }
 
     if (!isValid) return;
+
+    if (!bookingPhone.trim()) {
+      setPhoneError('Mobile number is required.');
+      isValid = false;
+    } else if (!/^\d{10}$/.test(bookingPhone.trim())) {
+      setPhoneError('Please enter a valid 10-digit mobile number.');
+      isValid = false;
+    }
+
+    if (!isValid) return;
     
     // Fake name detection: contains numbers, dummy words, or 1/2 char repetive names
     const hasNumbers = /\d/.test(bookingName);
@@ -100,6 +113,7 @@ export default function PackageDetail() {
         userId: user.id,
         userName: bookingName,
         userEmail: user.email,
+        userPhone: bookingPhone,
         packageId: pkg.id,
         packageTitle: pkg.title,
         date: pkg.packageDate || 'TBA',
@@ -421,6 +435,29 @@ export default function PackageDetail() {
                         className={`w-full px-4 py-3 rounded-xl border ${emailError ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-primary-500'} focus:ring-2 outline-none transition-colors`}
                       />
                       {emailError && <p className="text-red-500 text-xs mt-1">{emailError}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Number</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium border-r border-gray-200 pr-3">+91</span>
+                        <input 
+                          type="tel" 
+                          required
+                          maxLength={10}
+                          placeholder="Enter 10 digit number"
+                          value={bookingPhone}
+                          onChange={(e) => { 
+                            const val = e.target.value.replace(/\D/g, '');
+                            if (val.length <= 10) {
+                              setBookingPhone(val);
+                              setPhoneError('');
+                            }
+                          }}
+                          className={`w-full pl-16 pr-4 py-3 rounded-xl border ${phoneError ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-primary-500'} focus:ring-2 outline-none transition-colors`}
+                        />
+                      </div>
+                      {phoneError && <p className="text-red-500 text-xs mt-1">{phoneError}</p>}
                     </div>
 
                     <div className="pt-4 border-t border-gray-100">

@@ -86,6 +86,9 @@ export default function UserDashboard() {
                           <CreditCard className="w-4 h-4 text-gray-400" />
                           <span>Payment: <span className={booking.paymentStatus === 'Completed' ? 'text-green-600 font-bold' : 'text-red-500 font-bold'}>{booking.paymentStatus || 'Pending'}</span></span>
                         </div>
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <span className="font-bold text-gray-900">+91 {booking.userPhone}</span>
+                        </div>
                       </div>
                     </div>
                   </div>

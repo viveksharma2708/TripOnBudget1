@@ -64,7 +64,7 @@ export default function BookingConfirmation() {
 
           <div className="bg-gray-50 p-6 rounded-2xl mb-8">
             <h3 className="font-semibold text-gray-900 mb-4">Guest Information</h3>
-            <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
               <div>
                 <p className="text-gray-500">Name</p>
                 <p className="font-medium text-gray-900">{bookingData.userName}</p>
@@ -72,6 +72,10 @@ export default function BookingConfirmation() {
               <div>
                 <p className="text-gray-500">Email</p>
                 <p className="font-medium text-gray-900">{bookingData.userEmail}</p>
+              </div>
+              <div>
+                <p className="text-gray-500">Phone</p>
+                <p className="font-medium text-gray-900">+91 {bookingData.userPhone}</p>
               </div>
             </div>
           </div>

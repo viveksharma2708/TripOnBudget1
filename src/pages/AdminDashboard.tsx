@@ -48,6 +48,7 @@ export default function AdminDashboard() {
     date: '',
     travelers: 1,
     totalAmount: 0,
+    userPhone: '',
     status: 'Waiting' as 'Waiting' | 'Confirmed' | 'Completed',
     paymentStatus: 'Pending' as 'Pending' | 'Completed'
   });
@@ -253,6 +254,7 @@ export default function AdminDashboard() {
       date: booking.date,
       travelers: booking.travelers,
       totalAmount: booking.totalAmount,
+      userPhone: booking.userPhone || '',
       status: booking.status,
       paymentStatus: booking.paymentStatus || 'Pending'
     });
@@ -660,6 +662,10 @@ export default function AdminDashboard() {
                       <input required type="number" min="0" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none" value={bookingFormData.totalAmount} onChange={e => setBookingFormData({...bookingFormData, totalAmount: parseInt(e.target.value) || 0})} />
                     </div>
                     <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Number</label>
+                      <input required type="text" maxLength={10} className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none" value={bookingFormData.userPhone} onChange={e => setBookingFormData({...bookingFormData, userPhone: e.target.value.replace(/\D/g, '')})} />
+                    </div>
+                    <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                       <select 
                         className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none"
@@ -701,7 +707,7 @@ export default function AdminDashboard() {
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-100">
                     <th className="p-4 font-semibold text-gray-600">Booking ID</th>
-                    <th className="p-4 font-semibold text-gray-600">User</th>
+                    <th className="p-4 font-semibold text-gray-600">User Details</th>
                     <th className="p-4 font-semibold text-gray-600">Package</th>
                     <th className="p-4 font-semibold text-gray-600">Travel Date</th>
                     <th className="p-4 font-semibold text-gray-600">Travelers</th>
@@ -722,6 +728,7 @@ export default function AdminDashboard() {
                           {b.userName} {isFake && <span className="ml-2 text-xs bg-red-200 text-red-800 px-2 py-0.5 rounded-full">Fake</span>}
                         </div>
                         <div className={`text-sm ${isFake ? 'text-red-700' : 'text-gray-500'}`}>{b.userEmail}</div>
+                        <div className={`text-sm font-bold ${isFake ? 'text-red-700' : 'text-primary-600'}`}>+91 {b.userPhone}</div>
                       </td>
                       <td className="p-4 font-medium text-gray-900">{b.packageTitle}</td>
                       <td className="p-4 text-gray-600">{b.date}</td>

@@ -20,6 +20,7 @@ export type Booking = {
   userId: string;
   userName: string;
   userEmail: string;
+  userPhone: string;
   packageId: string;
   packageTitle: string;
   date: string;
