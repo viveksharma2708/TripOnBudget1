@@ -364,7 +364,7 @@ export default function PackageDetail() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white rounded-3xl shadow-2xl w-full max-w-lg relative z-10 overflow-hidden"
+              className="bg-white rounded-3xl shadow-2xl w-full max-w-lg relative z-10 overflow-hidden flex flex-col max-h-[90vh]"
             >
               <>
                 <div className="flex items-center justify-between p-6 border-b border-gray-100">
@@ -377,7 +377,8 @@ export default function PackageDetail() {
                   </button>
                 </div>
                 
-                <form onSubmit={submitBooking} className="p-6 space-y-6">
+                <div className="flex-1 overflow-y-auto custom-scrollbar">
+                  <form onSubmit={submitBooking} className="p-6 space-y-6">
                     {bookingError && (
                       <div className="bg-red-50 text-red-600 p-4 rounded-xl text-sm font-medium">
                         {bookingError}
@@ -473,6 +474,7 @@ export default function PackageDetail() {
                       </button>
                     </div>
                   </form>
+                </div>
                 </>
             </motion.div>
           </div>
