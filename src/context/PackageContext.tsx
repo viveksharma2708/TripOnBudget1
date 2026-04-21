@@ -14,7 +14,27 @@ import {
   writeBatch
 } from 'firebase/firestore';
 
-export type Package = typeof initialPackages[0];
+export type Package = {
+  id: string;
+  title: string;
+  location: string;
+  duration: string;
+  price: number;
+  originalPrice: number;
+  singlePrice?: number;
+  groupPrice?: number;
+  image: string;
+  category: string;
+  rating: number;
+  reviews: number;
+  description: string;
+  itinerary: { day: number; title: string; description: string; }[];
+  inclusions: string[];
+  exclusions: string[];
+  gallery?: string[];
+  video?: string;
+  packageDate?: string;
+};
 
 type PackageContextType = {
   packages: Package[];
@@ -37,31 +57,13 @@ export function PackageProvider({ children }: { children: ReactNode }) {
     const packagesCol = collection(db, path);
     const q = query(packagesCol, orderBy('price', 'asc'));
 
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      if (snapshot.empty) {
-        // Seed initial data if Firestore is empty AND user is admin
-        if (user?.role === 'admin') {
-          const batch = writeBatch(db);
-          initialPackages.forEach((pkg) => {
-            const newDocRef = doc(packagesCol);
-            batch.set(newDocRef, {
-              ...pkg,
-              id: newDocRef.id
-            });
-          });
-          await batch.commit();
-        } else {
-          setPackages([]);
-          setLoading(false);
-        }
-      } else {
-        const packagesList = snapshot.docs.map(doc => ({
-          ...doc.data(),
-          id: doc.id
-        } as Package));
-        setPackages(packagesList);
-        setLoading(false);
-      }
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const packagesList = snapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id
+      } as Package));
+      setPackages(packagesList);
+      setLoading(false);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, path);
       setLoading(false);

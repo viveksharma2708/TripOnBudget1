@@ -82,6 +82,8 @@ export default function AdminDashboard() {
     duration: '',
     price: '',
     originalPrice: '',
+    singlePrice: '',
+    groupPrice: '',
     image: '',
     category: 'Domestic',
     description: '',
@@ -132,6 +134,8 @@ export default function AdminDashboard() {
       duration: pkg.duration,
       price: pkg.price.toString(),
       originalPrice: pkg.originalPrice.toString(),
+      singlePrice: pkg.singlePrice ? pkg.singlePrice.toString() : '',
+      groupPrice: pkg.groupPrice ? pkg.groupPrice.toString() : '',
       image: pkg.image,
       category: pkg.category,
       description: pkg.description,
@@ -157,6 +161,8 @@ export default function AdminDashboard() {
       duration: formData.duration,
       price: Number(formData.price),
       originalPrice: Number(formData.originalPrice),
+      singlePrice: formData.singlePrice ? Number(formData.singlePrice) : Number(formData.price),
+      groupPrice: formData.groupPrice ? Number(formData.groupPrice) : Number(formData.price),
       image: formData.image || "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&q=80&w=1000",
       category: formData.category,
       description: formData.description,
@@ -179,7 +185,7 @@ export default function AdminDashboard() {
     setIsAdding(false);
     setEditingId(null);
     setFormData({
-      title: '', location: '', duration: '', price: '', originalPrice: '', image: '', category: 'Domestic', description: '', inclusions: '', exclusions: '', itinerary: '', gallery: '', video: '', packageDate: '', rating: '4.5', reviews: '0'
+      title: '', location: '', duration: '', price: '', originalPrice: '', singlePrice: '', groupPrice: '', image: '', category: 'Domestic', description: '', inclusions: '', exclusions: '', itinerary: '', gallery: '', video: '', packageDate: '', rating: '4.5', reviews: '0'
     });
   };
 
@@ -187,7 +193,7 @@ export default function AdminDashboard() {
     setIsAdding(false);
     setEditingId(null);
     setFormData({
-      title: '', location: '', duration: '', price: '', originalPrice: '', image: '', category: 'Domestic', description: '', inclusions: '', exclusions: '', itinerary: '', gallery: '', video: '', packageDate: '', rating: '4.5', reviews: '0'
+      title: '', location: '', duration: '', price: '', originalPrice: '', singlePrice: '', groupPrice: '', image: '', category: 'Domestic', description: '', inclusions: '', exclusions: '', itinerary: '', gallery: '', video: '', packageDate: '', rating: '4.5', reviews: '0'
     });
   };
 
@@ -412,6 +418,14 @@ export default function AdminDashboard() {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Original Price (₹)</label>
                   <input required type="number" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none" value={formData.originalPrice} onChange={e => setFormData({...formData, originalPrice: e.target.value})} placeholder="e.g. 30000" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Single Person Price (₹)</label>
+                  <input type="number" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none" value={formData.singlePrice} onChange={e => setFormData({...formData, singlePrice: e.target.value})} placeholder="Leave blank to use default" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Group Price (Min 5) (₹)</label>
+                  <input type="number" className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500 outline-none" value={formData.groupPrice} onChange={e => setFormData({...formData, groupPrice: e.target.value})} placeholder="Leave blank to use default" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Rating (Star)</label>

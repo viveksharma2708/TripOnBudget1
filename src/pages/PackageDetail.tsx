@@ -58,6 +58,14 @@ export default function PackageDetail() {
     setIsBookingModalOpen(true);
   };
 
+  const getPricePerPerson = () => {
+    if (travelers === 1 && pkg.singlePrice) return pkg.singlePrice;
+    if (travelers >= 5 && pkg.groupPrice) return pkg.groupPrice;
+    return pkg.price;
+  };
+
+  const totalPrice = travelers * getPricePerPerson();
+
   const submitBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     setBookingError('');
@@ -118,7 +126,7 @@ export default function PackageDetail() {
         packageTitle: pkg.title,
         date: pkg.packageDate || 'TBA',
         travelers,
-        totalAmount: pkg.price * travelers,
+        totalAmount: totalPrice,
         isFakeName
       };
       await addBooking(bookingData);
@@ -305,15 +313,38 @@ export default function PackageDetail() {
                   <h2 className="text-4xl font-bold text-gray-900">₹{pkg.price.toLocaleString('en-IN')}</h2>
                   <span className="text-gray-500 mb-1">/ person</span>
                 </div>
+                {pkg.singlePrice && (
+                  <p className="text-sm text-primary-600 font-medium mt-1">₹{pkg.singlePrice.toLocaleString('en-IN')} for single person</p>
+                )}
+                {pkg.groupPrice && (
+                  <p className="text-sm text-green-600 font-medium mt-1">₹{pkg.groupPrice.toLocaleString('en-IN')} per person for group (5+)</p>
+                )}
                 <div className="mt-2 inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
                   Save ₹{(pkg.originalPrice - pkg.price).toLocaleString('en-IN')}!
                 </div>
               </div>
 
+              <div className="space-y-4 mb-4">
+                <div className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100">
+                  <span className="text-sm font-medium text-gray-600">Travelers</span>
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => setTravelers(Math.max(1, travelers - 1))}
+                      className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:border-primary-500 transition-colors"
+                    >-</button>
+                    <span className="w-4 text-center font-bold">{travelers}</span>
+                    <button 
+                      onClick={() => setTravelers(travelers + 1)}
+                      className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center hover:border-primary-500 transition-colors"
+                    >+</button>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-4 mb-8">
                 <div className="flex justify-between text-gray-600 pb-4 border-b border-gray-100">
-                  <span>Base Price</span>
-                  <span>₹{pkg.price.toLocaleString('en-IN')}</span>
+                  <span>Price per person</span>
+                  <span>₹{getPricePerPerson().toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex justify-between text-gray-600 pb-4 border-b border-gray-100">
                   <span>Taxes & Fees</span>
@@ -321,7 +352,7 @@ export default function PackageDetail() {
                 </div>
                 <div className="flex justify-between font-bold text-lg text-gray-900 pt-2">
                   <span>Total</span>
-                  <span>₹{pkg.price.toLocaleString('en-IN')}</span>
+                  <span>₹{totalPrice.toLocaleString('en-IN')}</span>
                 </div>
               </div>
 
@@ -463,8 +494,11 @@ export default function PackageDetail() {
 
                     <div className="pt-4 border-t border-gray-100">
                       <div className="flex justify-between items-center mb-6">
-                        <span className="text-gray-600 font-medium">Total Amount</span>
-                        <span className="text-2xl font-bold text-gray-900">₹{(pkg.price * travelers).toLocaleString('en-IN')}</span>
+                        <div>
+                          <p className="text-gray-600 font-medium">Total Amount</p>
+                          <p className="text-xs text-gray-400">₹{getPricePerPerson().toLocaleString('en-IN')} x {travelers} traveler{travelers > 1 ? 's' : ''}</p>
+                        </div>
+                        <span className="text-2xl font-bold text-gray-900">₹{totalPrice.toLocaleString('en-IN')}</span>
                       </div>
                       <button 
                         type="submit"
