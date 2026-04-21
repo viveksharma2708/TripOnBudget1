@@ -310,14 +310,14 @@ export default function PackageDetail() {
               <div className="mb-6">
                 <p className="text-gray-500 line-through text-lg">₹{pkg.originalPrice.toLocaleString('en-IN')}</p>
                 <div className="flex items-end gap-2">
-                  <h2 className="text-4xl font-bold text-gray-900">₹{pkg.price.toLocaleString('en-IN')}</h2>
+                  <h2 className="text-4xl font-bold text-gray-900">₹{(pkg.price || 0).toLocaleString('en-IN')}</h2>
                   <span className="text-gray-500 mb-1">/ person</span>
                 </div>
                 {pkg.singlePrice && (
                   <p className="text-sm text-primary-600 font-medium mt-1">₹{pkg.singlePrice.toLocaleString('en-IN')} for single person</p>
                 )}
                 {pkg.groupPrice && (
-                  <p className="text-sm text-green-600 font-medium mt-1">₹{pkg.groupPrice.toLocaleString('en-IN')} per person for group (5+)</p>
+                  <p className="text-sm text-green-600 font-medium mt-1">₹{pkg.groupPrice.toLocaleString('en-IN')} per person for group (Min 5)</p>
                 )}
                 <div className="mt-2 inline-block bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
                   Save ₹{(pkg.originalPrice - pkg.price).toLocaleString('en-IN')}!
@@ -344,7 +344,7 @@ export default function PackageDetail() {
               <div className="space-y-4 mb-8">
                 <div className="flex justify-between text-gray-600 pb-4 border-b border-gray-100">
                   <span>Price per person</span>
-                  <span>₹{getPricePerPerson().toLocaleString('en-IN')}</span>
+                  <span>₹{(getPricePerPerson() || 0).toLocaleString('en-IN')}</span>
                 </div>
                 <div className="flex justify-between text-gray-600 pb-4 border-b border-gray-100">
                   <span>Taxes & Fees</span>
@@ -352,7 +352,7 @@ export default function PackageDetail() {
                 </div>
                 <div className="flex justify-between font-bold text-lg text-gray-900 pt-2">
                   <span>Total</span>
-                  <span>₹{totalPrice.toLocaleString('en-IN')}</span>
+                  <span>₹{(totalPrice || 0).toLocaleString('en-IN')}</span>
                 </div>
               </div>
 
@@ -428,7 +428,11 @@ export default function PackageDetail() {
                           min="1"
                           required
                           value={travelers}
-                          onChange={(e) => { setTravelers(parseInt(e.target.value)); setTravelersError(''); }}
+                          onChange={(e) => { 
+                            const val = parseInt(e.target.value);
+                            setTravelers(isNaN(val) ? 1 : val); 
+                            setTravelersError(''); 
+                          }}
                           className={`w-full px-4 py-3 rounded-xl border ${travelersError ? 'border-red-500 focus:ring-red-500' : 'border-gray-200 focus:ring-primary-500'} focus:ring-2 outline-none transition-colors`}
                         />
                         {travelersError && <p className="text-red-500 text-xs mt-1">{travelersError}</p>}
@@ -496,9 +500,9 @@ export default function PackageDetail() {
                       <div className="flex justify-between items-center mb-6">
                         <div>
                           <p className="text-gray-600 font-medium">Total Amount</p>
-                          <p className="text-xs text-gray-400">₹{getPricePerPerson().toLocaleString('en-IN')} x {travelers} traveler{travelers > 1 ? 's' : ''}</p>
+                          <p className="text-xs text-gray-400">₹{(getPricePerPerson() || 0).toLocaleString('en-IN')} x {travelers} traveler{travelers > 1 ? 's' : ''}</p>
                         </div>
-                        <span className="text-2xl font-bold text-gray-900">₹{totalPrice.toLocaleString('en-IN')}</span>
+                        <span className="text-2xl font-bold text-gray-900">₹{(totalPrice || 0).toLocaleString('en-IN')}</span>
                       </div>
                       <button 
                         type="submit"

@@ -155,24 +155,31 @@ export default function Home() {
                   <h3 className="text-xl font-heading font-bold text-gray-900 mb-4 group-hover:text-primary-600 transition-colors">
                     {pkg.title}
                   </h3>
-                  <div className="flex items-end justify-between mt-6 pt-6 border-t border-gray-100">
-                    <div>
-                      <p className="text-sm text-gray-500 line-through">₹{pkg.originalPrice.toLocaleString('en-IN')}</p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        ₹{pkg.price.toLocaleString('en-IN')}
-                        <span className="text-sm font-normal text-gray-500">/person</span>
+                  <div className="mt-6 pt-6 border-t border-gray-100 grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-gray-500 uppercase font-bold">1 Person</p>
+                      <p className="text-xl font-bold text-gray-900 leading-none">
+                        ₹{ (pkg.singlePrice || pkg.price).toLocaleString('en-IN') }
                       </p>
+                      <p className="text-[10px] text-gray-400 line-through">₹{pkg.originalPrice.toLocaleString('en-IN')}</p>
                     </div>
-                    <div className="flex flex-col gap-2">
+                    <div className="space-y-1 text-right">
+                      <p className="text-[10px] text-primary-600 uppercase font-bold">Group (Min 5)</p>
+                      <p className="text-xl font-bold text-primary-600 leading-none">
+                        ₹{ (pkg.groupPrice || pkg.price).toLocaleString('en-IN') }
+                      </p>
+                      <p className="text-[10px] text-gray-400">per person</p>
+                    </div>
+                    <div className="col-span-2 flex gap-3 mt-2">
                       <Link 
                         to={`/packages/${pkg.id}`}
-                        className="bg-gray-100 text-gray-900 px-4 py-2 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors text-center"
+                        className="flex-1 bg-gray-100 text-gray-900 py-2.5 rounded-xl text-sm font-bold hover:bg-gray-200 transition-colors text-center"
                       >
                         Details
                       </Link>
                       <Link 
                         to={`/packages/${pkg.id}?book=true`}
-                        className="bg-primary-600 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-primary-700 transition-colors text-center"
+                        className="flex-1 bg-primary-600 text-white py-2.5 rounded-xl text-sm font-bold hover:bg-primary-700 transition-colors text-center"
                       >
                         Book Now
                       </Link>

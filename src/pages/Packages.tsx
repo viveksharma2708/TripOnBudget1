@@ -198,23 +198,31 @@ export default function Packages() {
                         <Calendar className="w-4 h-4" />
                         <span>{pkg.duration}</span>
                       </div>
-                      <div className="mt-auto pt-4 border-t border-gray-100 flex items-end justify-between">
-                        <div>
-                          <p className="text-xs text-gray-500 line-through">₹{pkg.originalPrice.toLocaleString('en-IN')}</p>
-                          <p className="text-xl font-bold text-gray-900">
-                            ₹{pkg.price.toLocaleString('en-IN')}
+                      <div className="mt-auto pt-4 border-t border-gray-100 grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <p className="text-[10px] text-gray-500 uppercase font-bold">1 Person</p>
+                          <p className="text-lg font-bold text-gray-900 leading-none">
+                            ₹{ (pkg.singlePrice || pkg.price).toLocaleString('en-IN') }
                           </p>
+                          <p className="text-[10px] text-gray-400 line-through">₹{pkg.originalPrice.toLocaleString('en-IN')}</p>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="space-y-1 text-right">
+                          <p className="text-[10px] text-primary-600 uppercase font-bold">Group (Min 5)</p>
+                          <p className="text-lg font-bold text-primary-600 leading-none">
+                            ₹{ (pkg.groupPrice || pkg.price).toLocaleString('en-IN') }
+                          </p>
+                          <p className="text-[10px] text-gray-400">per person</p>
+                        </div>
+                        <div className="col-span-2 flex gap-2 mt-2">
                           <Link 
                             to={`/packages/${pkg.id}`}
-                            className="bg-gray-100 text-gray-900 px-3 py-2 rounded-xl text-sm font-medium hover:bg-gray-200 transition-colors"
+                            className="flex-1 bg-gray-100 text-gray-900 py-2 rounded-xl text-xs font-bold hover:bg-gray-200 transition-colors text-center"
                           >
                             Details
                           </Link>
                           <Link 
                             to={`/packages/${pkg.id}?book=true`}
-                            className="bg-primary-600 text-white px-3 py-2 rounded-xl text-sm font-medium hover:bg-primary-700 transition-colors"
+                            className="flex-1 bg-primary-600 text-white py-2 rounded-xl text-xs font-bold hover:bg-primary-700 transition-colors text-center"
                           >
                             Book Now
                           </Link>

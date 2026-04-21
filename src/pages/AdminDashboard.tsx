@@ -506,7 +506,7 @@ export default function AdminDashboard() {
                         </div>
                       </td>
                       <td className="p-4 text-gray-600">{pkg.location}</td>
-                      <td className="p-4 font-medium text-gray-900">₹{pkg.price.toLocaleString('en-IN')}</td>
+                      <td className="p-4 font-medium text-gray-900">₹{(pkg.price || 0).toLocaleString('en-IN')}</td>
                       <td className="p-4">
                         <span className="bg-primary-50 text-primary-700 px-3 py-1 rounded-full text-sm font-medium">
                           {pkg.category}
@@ -747,7 +747,7 @@ export default function AdminDashboard() {
                       <td className="p-4 font-medium text-gray-900">{b.packageTitle}</td>
                       <td className="p-4 text-gray-600">{b.date}</td>
                       <td className="p-4 text-gray-600">{b.travelers}</td>
-                      <td className="p-4 font-medium text-gray-900">₹{b.totalAmount.toLocaleString('en-IN')}</td>
+                      <td className="p-4 font-medium text-gray-900">₹{(b.totalAmount || 0).toLocaleString('en-IN')}</td>
                       <td className="p-4">
                         <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                           b.status === 'Confirmed' ? 'bg-green-50 text-green-700' : 

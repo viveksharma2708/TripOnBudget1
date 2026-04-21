@@ -51,6 +51,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Collection: Settings
+    match /settings/{docId} {
+      allow read, write: if isAdmin();
+    }
+
     // Collection: Bookings
     match /bookings/{docId} {
       allow read: if isVerified() && (resource.data.userId == request.auth.uid || isAdmin());

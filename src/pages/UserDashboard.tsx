@@ -80,7 +80,7 @@ export default function UserDashboard() {
                         </div>
                         <div className="flex items-center gap-2 text-gray-600">
                           <CreditCard className="w-4 h-4 text-gray-400" />
-                          <span>Total: ₹{booking.totalAmount.toLocaleString('en-IN')}</span>
+                          <span>Total: ₹{(booking.totalAmount || 0).toLocaleString('en-IN')}</span>
                         </div>
                         <div className="flex items-center gap-2 text-gray-600">
                           <CreditCard className="w-4 h-4 text-gray-400" />
