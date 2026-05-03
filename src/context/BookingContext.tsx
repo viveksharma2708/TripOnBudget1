@@ -118,10 +118,14 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         });
         
         const result = await response.json();
-        console.log('Email send result:', result);
         
-        if (!response.ok) {
-          console.error('Email API failed with status:', response.status, result);
+        if (!response.ok || !result.success) {
+          console.error('Email API failed:', response.status, result);
+          if (result.error?.includes('SMTP not configured')) {
+            console.warn('Booking confirmed but notification email could not be sent because SMTP is not configured by the administrator.');
+          }
+        } else {
+          console.log('Email sent successfully:', result);
         }
       } catch (emailError) {
         console.error('Failed to send confirmation email:', emailError);

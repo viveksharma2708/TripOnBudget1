@@ -18,6 +18,7 @@ async function startServer() {
     // Email Confirmation Endpoint
     app.post("/api/send-confirmation-email", async (req, res) => {
       const { email, name, packageTitle, travelers, totalAmount, date } = req.body;
+      console.log(`[Email] Received request for ${email}, package: ${packageTitle}`);
 
       try {
         const host = process.env.SMTP_HOST;
@@ -26,14 +27,19 @@ async function startServer() {
         const pass = process.env.SMTP_PASS;
 
         if (!host || !port || !user || !pass) {
-          console.warn("SMTP credentials missing");
-          return res.status(200).json({ success: true, message: "SMTP not configured" });
+          console.warn("[Email] SMTP credentials missing in environment variables");
+          return res.status(500).json({ 
+            success: false, 
+            error: "SMTP not configured. Please set SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS env vars." 
+          });
         }
+
+        console.log(`[Email] Attempting to send using host: ${host}, port: ${port}, user: ${user}`);
 
         const transporter = nodemailer.createTransport({
           host,
           port: parseInt(port),
-          secure: parseInt(port) === 465,
+          secure: parseInt(port) === 465, // usually true for 465, false for 587
           auth: { user, pass },
           tls: { rejectUnauthorized: false }
         });
@@ -66,10 +72,11 @@ async function startServer() {
           `,
         });
 
+        console.log(`[Email] Success: Confirmation sent to ${email}`);
         res.status(200).json({ success: true });
       } catch (error) {
-        console.error("Email send error:", error);
-        res.status(500).json({ error: "Failed to send email" });
+        console.error("[Email] Error sending email:", error);
+        res.status(500).json({ error: "Failed to send email", details: error instanceof Error ? error.message : String(error) });
       }
     });
 
@@ -87,6 +94,12 @@ async function startServer() {
 
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server started on port ${PORT}`);
+      console.log('[Startup] SMTP Configuration Check:', {
+        host: process.env.SMTP_HOST || 'MISSING',
+        port: process.env.SMTP_PORT || 'MISSING',
+        user: process.env.SMTP_USER ? 'SET' : 'MISSING',
+        pass: process.env.SMTP_PASS ? 'SET' : 'MISSING'
+      });
     });
   } catch (err) {
     console.error("Startup error:", err);

@@ -3,7 +3,7 @@ import { Package } from "../context/PackageContext";
 
 export async function chatWithAI(message: string, packages: Package[], chatHistory: { role: 'user' | 'model'; parts: { text: string }[] }[]) {
   try {
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '');
+    const apiKey = process.env.GEMINI_API_KEY;
     
     if (!apiKey) {
       console.warn("Gemini API key missing.");
@@ -43,7 +43,7 @@ export async function chatWithAI(message: string, packages: Package[], chatHisto
     `;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.0-flash-exp",
+      model: "gemini-3-flash-preview",
       contents: [
         ...chatHistory,
         { role: 'user', parts: [{ text: message }] }
