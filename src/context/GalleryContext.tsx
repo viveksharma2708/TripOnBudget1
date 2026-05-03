@@ -10,7 +10,8 @@ import {
   query, 
   onSnapshot,
   orderBy,
-  writeBatch
+  writeBatch,
+  getDoc
 } from 'firebase/firestore';
 
 export type GalleryItem = {
@@ -72,15 +73,26 @@ export function GalleryProvider({ children }: { children: ReactNode }) {
       if (snapshot.empty) {
         // Seed initial data if Firestore is empty AND user is admin
         if (user?.role === 'admin') {
-            const batch = writeBatch(db);
-            initialGallery.forEach((item) => {
-                const newDocRef = doc(galleryCol);
-                batch.set(newDocRef, {
-                    ...item,
-                    id: newDocRef.id
+            const seedStatusRef = doc(db, 'settings', 'gallery_seed_status');
+            const seedStatus = await getDoc(seedStatusRef);
+            
+            if (!seedStatus.exists() || !seedStatus.data().seeded) {
+                const batch = writeBatch(db);
+                initialGallery.forEach((item) => {
+                    const newDocRef = doc(galleryCol);
+                    batch.set(newDocRef, {
+                        ...item,
+                        id: newDocRef.id
+                    });
                 });
-            });
-            await batch.commit();
+                // Mark as seeded
+                batch.set(seedStatusRef, { seeded: true, timestamp: new Date().toISOString() });
+                await batch.commit();
+            } else {
+                // Already seeded once, so if it's empty, it means admin deleted everything.
+                setGalleryItems([]);
+                setLoading(false);
+            }
         } else {
             setGalleryItems([]);
             setLoading(false);

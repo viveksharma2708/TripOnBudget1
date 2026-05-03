@@ -262,9 +262,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <AuthContext.Provider value={{ user, login, signup, loginWithGoogle, logout, resetPassword, deleteUserProfile, allUsers, loading }}>
       {loading ? (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mb-4"></div>
-          <p className="text-gray-500 font-medium">Connecting to Firebase...</p>
+        <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+          <div className="relative">
+            <div className="w-16 h-16 border-4 border-gray-100 border-t-primary-600 rounded-full animate-spin"></div>
+            <div className="absolute inset-0 flex items-center justify-center animate-pulse">
+              <div className="w-8 h-8 bg-primary-600/20 rounded-full"></div>
+            </div>
+          </div>
         </div>
       ) : (
         children

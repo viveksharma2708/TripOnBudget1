@@ -99,6 +99,34 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         paymentStatus: 'Pending',
         createdAt: serverTimestamp()
       });
+
+      // Send confirmation email
+      try {
+        const response = await fetch('/api/send-confirmation-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: bookingData.userEmail,
+            name: bookingData.userName,
+            packageTitle: bookingData.packageTitle,
+            travelers: bookingData.travelers,
+            totalAmount: bookingData.totalAmount,
+            date: bookingData.date
+          }),
+        });
+        
+        const result = await response.json();
+        console.log('Email send result:', result);
+        
+        if (!response.ok) {
+          console.error('Email API failed with status:', response.status, result);
+        }
+      } catch (emailError) {
+        console.error('Failed to send confirmation email:', emailError);
+        // We don't want to fail the whole booking if email fails
+      }
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, path);
     }

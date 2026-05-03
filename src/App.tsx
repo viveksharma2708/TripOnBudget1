@@ -26,6 +26,8 @@ import AdminDashboard from './pages/AdminDashboard';
 import UserDashboard from './pages/UserDashboard';
 import Gallery from './pages/Gallery';
 
+import FloatingChat from './components/FloatingChat';
+
 export default function App() {
   return (
     <ErrorBoundary>
@@ -37,6 +39,7 @@ export default function App() {
                 <BookingProvider>
                   <Router>
                     <ScrollToTop />
+                    <FloatingChat />
                     <Routes>
                       <Route path="/" element={<Layout />}>
                         <Route index element={<Home />} />

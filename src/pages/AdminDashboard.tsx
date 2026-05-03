@@ -14,7 +14,7 @@ export default function AdminDashboard() {
   const { user, allUsers, deleteUserProfile, loading: authLoading } = useAuth();
   const { inquiries, deleteInquiry, loading: inquiriesLoading } = useInquiries();
   const { bookings, updateBookingStatus, updateBooking, deleteBooking, loading: bookingsLoading } = useBookings();
-  const { testimonials, addTestimonial, updateTestimonial, removeTestimonial, loading: testimonialsLoading } = useTestimonials();
+  const { testimonials, addTestimonial, updateTestimonial, removeTestimonial, clearAllTestimonials, loading: testimonialsLoading } = useTestimonials();
   const { galleryItems, addGalleryItem, updateGalleryItem, removeGalleryItem, loading: galleryLoading } = useGallery();
 
   const [confirmModal, setConfirmModal] = useState<{
@@ -813,16 +813,32 @@ export default function AdminDashboard() {
           <div className="space-y-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-gray-900">Manage Testimonials</h2>
-              <button 
-                onClick={() => {
-                  setIsAddingTestimonial(true);
-                  setEditingTestimonialId(null);
-                  setTestimonialFormData({ name: '', role: '', content: '', avatar: '' });
-                }}
-                className="bg-primary-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-primary-700 transition-colors flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" /> Add Testimonial
-              </button>
+              <div className="flex gap-3">
+                {testimonials.length > 0 && (
+                  <button 
+                    onClick={() => {
+                      showConfirm(
+                        'Clear All Testimonials',
+                        'Are you sure you want to delete ALL testimonials? This action cannot be undone.',
+                        () => clearAllTestimonials()
+                      );
+                    }}
+                    className="bg-red-50 text-red-600 px-4 py-2 rounded-xl font-medium hover:bg-red-100 transition-colors flex items-center gap-2 border border-red-100"
+                  >
+                    <Trash2 className="w-4 h-4" /> Clear All
+                  </button>
+                )}
+                <button 
+                  onClick={() => {
+                    setIsAddingTestimonial(true);
+                    setEditingTestimonialId(null);
+                    setTestimonialFormData({ name: '', role: '', content: '', avatar: '' });
+                  }}
+                  className="bg-primary-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-primary-700 transition-colors flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" /> Add Testimonial
+                </button>
+              </div>
             </div>
 
             {isAddingTestimonial && (
