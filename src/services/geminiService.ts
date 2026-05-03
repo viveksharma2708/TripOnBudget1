@@ -36,11 +36,8 @@ export async function chatWithAI(message: string, packages: Package[], chatHisto
       - Be professional but brief.
     `;
 
-    const model = "gemini-3-flash-preview";
-    
-    // In @google/genai, we use generateContent with the history included or session
     const response = await ai.models.generateContent({
-      model: model,
+      model: "gemini-3-flash-preview",
       contents: [
         ...chatHistory,
         { role: 'user', parts: [{ text: message }] }

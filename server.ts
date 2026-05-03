@@ -10,10 +10,12 @@ async function startServer() {
 
     app.use(express.json());
 
+    // Health check
     app.get("/api/health", (req, res) => {
       res.json({ status: "ok" });
     });
 
+    // Email Confirmation Endpoint
     app.post("/api/send-confirmation-email", async (req, res) => {
       const { email, name, packageTitle, travelers, totalAmount, date } = req.body;
 
