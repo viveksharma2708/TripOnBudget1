@@ -1,10 +1,16 @@
 import { GoogleGenAI } from "@google/genai";
 import { Package } from "../context/PackageContext";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-
 export async function chatWithAI(message: string, packages: Package[], chatHistory: { role: 'user' | 'model'; parts: { text: string }[] }[]) {
   try {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : '');
+    
+    if (!apiKey) {
+      console.warn("Gemini API key missing.");
+      return "I'm sorry, my AI features are currently offline because the API key is not configured.";
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
     const packagesContext = packages.map(pkg => ({
       title: pkg.title,
       location: pkg.location,
@@ -37,7 +43,7 @@ export async function chatWithAI(message: string, packages: Package[], chatHisto
     `;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.0-flash-exp",
       contents: [
         ...chatHistory,
         { role: 'user', parts: [{ text: message }] }
