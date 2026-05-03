@@ -55,7 +55,14 @@ export async function chatWithAI(message: string, packages: Package[], chatHisto
 
     return response.text;
   } catch (error) {
-    console.error("Gemini AI Error:", error);
+    console.error("Gemini AI Client Error:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes("API key not valid") || errorMessage.includes("API_KEY_INVALID")) {
+      return "The Gemini API key is invalid. Please go to Settings (gear icon) and ensure GEMINI_API_KEY is correctly configured.";
+    }
+    if (errorMessage.includes("quota") || errorMessage.includes("rate limit") || errorMessage.includes("429")) {
+      return "I'm receiving too many requests right now. Please wait a moment and try again.";
+    }
     return "I'm sorry, I'm having trouble connecting right now. Please try again or contact us directly.";
   }
 }

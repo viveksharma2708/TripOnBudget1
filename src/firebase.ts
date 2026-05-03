@@ -5,15 +5,26 @@ import { getFirestore } from "firebase/firestore";
 import firebaseAppletConfig from '../firebase-applet-config.json';
 
 // Support for Vercel / Production environment variables
+const v_apiKey = import.meta.env.VITE_FIREBASE_API_KEY;
+const v_authDomain = import.meta.env.VITE_FIREBASE_AUTH_DOMAIN;
+const v_projectId = import.meta.env.VITE_FIREBASE_PROJECT_ID;
+const v_databaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID;
+
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || firebaseAppletConfig.apiKey,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || firebaseAppletConfig.authDomain,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || firebaseAppletConfig.projectId,
+  apiKey: v_apiKey || firebaseAppletConfig.apiKey,
+  authDomain: v_authDomain || firebaseAppletConfig.authDomain,
+  projectId: v_projectId || firebaseAppletConfig.projectId,
   storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || firebaseAppletConfig.storageBucket,
   messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || firebaseAppletConfig.messagingSenderId,
   appId: import.meta.env.VITE_FIREBASE_APP_ID || firebaseAppletConfig.appId,
-  firestoreDatabaseId: import.meta.env.VITE_FIREBASE_DATABASE_ID || firebaseAppletConfig.firestoreDatabaseId,
+  firestoreDatabaseId: v_databaseId || firebaseAppletConfig.firestoreDatabaseId || '(default)',
 };
+
+if (v_projectId || v_databaseId) {
+  console.log("[Firebase] Using environment variable overrides for project/database.");
+} else {
+  console.log("[Firebase] Using default configuration from firebase-applet-config.json");
+}
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -21,7 +32,7 @@ export const auth = getAuth(app);
 // Force local persistence for better cross-origin reliability
 setPersistence(auth, browserLocalPersistence).catch(err => console.error("Persistence error:", err));
 
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId === '(default)' ? undefined : firebaseConfig.firestoreDatabaseId);
 
 // Customizing Google Provider for better popup reliability
 export const googleProvider = new GoogleAuthProvider();
@@ -43,15 +54,22 @@ export enum OperationType {
 async function testFirestoreConnection() {
   const { getDocFromServer, doc } = await import('firebase/firestore');
   try {
+    console.log(`[Firebase] Testing connection to ${firebaseConfig.projectId}/${firebaseConfig.firestoreDatabaseId}...`);
     await getDocFromServer(doc(db, '_connection_test_', 'test'));
     console.log("Firestore connection check passed.");
   } catch (error) {
-    if (error instanceof Error && error.message.includes('permission')) {
-        // This is expected if the doc doesn't exist and we have strict rules
-        return;
+    const err = error as any;
+    
+    // permission-denied is actually a SUCCESS for connectivity (reached the backend)
+    if (err.code === 'permission-denied') {
+      console.log("Firestore connection check: REACHED (Access Restricted). Backend is online.");
+      return;
     }
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error("Firestore is offline or incorrectly configured.");
+
+    console.error(`[Firebase] Connection test failed: ${err.code || 'unknown'} - ${err.message}`);
+    
+    if (err.code === 'unavailable') {
+      console.warn("Firestore service is unavailable. This usually means the Project ID or Database ID is incorrect, or the service is not enabled.");
     }
   }
 }
@@ -109,6 +127,8 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     }
     
     window.alert(friendlyMessage);
+  } else if (message.includes('unavailable') || message.includes('Could not reach Cloud Firestore')) {
+    window.alert(`Firestore Connectivity Error: The database is currently unreachable. \n\nThis is usually caused by: \n1. Incorrect VITE_FIREBASE_PROJECT_ID or VITE_FIREBASE_DATABASE_ID in settings. \n2. Firestore is not enabled for the project. \n3. Browser network restrictions. \n\nIf you recently changed environment variables, please ensure they match your Firebase Console configuration exactly.`);
   } else {
     window.alert(`Database Error (${operationType}): ${message}`);
   }

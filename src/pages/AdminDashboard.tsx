@@ -10,12 +10,12 @@ import { useGallery } from '../context/GalleryContext';
 import { motion } from 'motion/react';
 
 export default function AdminDashboard() {
-  const { packages, addPackage, updatePackage, removePackage, loading: packagesLoading } = usePackages();
+  const { packages, addPackage, updatePackage, removePackage, clearAllPackages, loading: packagesLoading } = usePackages();
   const { user, allUsers, deleteUserProfile, loading: authLoading } = useAuth();
   const { inquiries, deleteInquiry, loading: inquiriesLoading } = useInquiries();
   const { bookings, updateBookingStatus, updateBooking, deleteBooking, loading: bookingsLoading } = useBookings();
   const { testimonials, addTestimonial, updateTestimonial, removeTestimonial, clearAllTestimonials, loading: testimonialsLoading } = useTestimonials();
-  const { galleryItems, addGalleryItem, updateGalleryItem, removeGalleryItem, loading: galleryLoading } = useGallery();
+  const { galleryItems, addGalleryItem, updateGalleryItem, removeGalleryItem, clearAllGallery, loading: galleryLoading } = useGallery();
 
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -287,12 +287,28 @@ export default function AdminDashboard() {
             <p className="text-gray-600 mt-1">Manage your platform</p>
           </div>
           {activeTab === 'packages' && (
-            <button 
-              onClick={isAdding ? handleCancel : () => setIsAdding(true)}
-              className="bg-primary-600 text-white px-6 py-2.5 rounded-xl font-medium hover:bg-primary-700 transition-colors flex items-center gap-2"
-            >
-              {isAdding ? 'Cancel' : <><Plus className="w-5 h-5" /> Add Package</>}
-            </button>
+            <div className="flex gap-3">
+              {packages.length > 0 && (
+                <button 
+                  onClick={() => {
+                    showConfirm(
+                      'Clear All Packages',
+                      'Are you sure you want to delete ALL packages? This will wipe all travel packages from the database.',
+                      () => clearAllPackages()
+                    );
+                  }}
+                  className="bg-red-50 text-red-600 px-4 py-2 rounded-xl font-medium hover:bg-red-100 transition-colors flex items-center gap-2 border border-red-100"
+                >
+                  <Trash2 className="w-4 h-4" /> Clear All
+                </button>
+              )}
+              <button 
+                onClick={isAdding ? handleCancel : () => setIsAdding(true)}
+                className="bg-primary-600 text-white px-6 py-2.5 rounded-xl font-medium hover:bg-primary-700 transition-colors flex items-center gap-2"
+              >
+                {isAdding ? 'Cancel' : <><Plus className="w-5 h-5" /> Add Package</>}
+              </button>
+            </div>
           )}
         </div>
 
@@ -918,16 +934,32 @@ export default function AdminDashboard() {
           <div className="space-y-6">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-gray-900">Manage Gallery</h2>
-              <button 
-                onClick={() => {
-                  setIsAddingGallery(true);
-                  setEditingGalleryId(null);
-                  setGalleryFormData({ type: 'image', url: '', title: '' });
-                }}
-                className="bg-primary-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-primary-700 transition-colors flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" /> Add Media
-              </button>
+              <div className="flex gap-3">
+                {galleryItems.length > 0 && (
+                  <button 
+                    onClick={() => {
+                      showConfirm(
+                        'Clear All Gallery Items',
+                        'Are you sure you want to delete ALL gallery items?',
+                        () => clearAllGallery()
+                      );
+                    }}
+                    className="bg-red-50 text-red-600 px-4 py-2 rounded-xl font-medium hover:bg-red-100 transition-colors flex items-center gap-2 border border-red-100"
+                  >
+                    <Trash2 className="w-4 h-4" /> Clear All
+                  </button>
+                )}
+                <button 
+                  onClick={() => {
+                    setIsAddingGallery(true);
+                    setEditingGalleryId(null);
+                    setGalleryFormData({ type: 'image', url: '', title: '' });
+                  }}
+                  className="bg-primary-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-primary-700 transition-colors flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" /> Add Media
+                </button>
+              </div>
             </div>
 
             {isAddingGallery && (

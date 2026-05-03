@@ -21,38 +21,14 @@ export type GalleryItem = {
   title: string;
 };
 
-const initialGallery: GalleryItem[] = [
-  {
-    id: 'gal-1',
-    type: 'image',
-    url: 'https://images.unsplash.com/photo-1524492412937-b28074a5d7da?auto=format&fit=crop&q=80&w=1000',
-    title: 'Taj Mahal at Sunrise'
-  },
-  {
-    id: 'gal-2',
-    type: 'image',
-    url: 'https://images.unsplash.com/photo-1581793746485-04698e79a4e8?auto=format&fit=crop&q=80&w=1000',
-    title: 'Pangong Lake, Ladakh'
-  },
-  {
-    id: 'gal-3',
-    type: 'video',
-    url: 'https://www.youtube.com/embed/35npVaFGHMY',
-    title: 'Incredible India Travel Video'
-  },
-  {
-    id: 'gal-4',
-    type: 'image',
-    url: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&q=80&w=1000',
-    title: 'Goa Beaches'
-  }
-];
+const initialGallery: GalleryItem[] = [];
 
 type GalleryContextType = {
   galleryItems: GalleryItem[];
   addGalleryItem: (item: Omit<GalleryItem, 'id'>) => Promise<void>;
   updateGalleryItem: (id: string, item: Omit<GalleryItem, 'id'>) => Promise<void>;
   removeGalleryItem: (id: string) => Promise<void>;
+  clearAllGallery: () => Promise<void>;
   loading: boolean;
 };
 
@@ -69,42 +45,13 @@ export function GalleryProvider({ children }: { children: ReactNode }) {
     const galleryCol = collection(db, path);
     const q = query(galleryCol, orderBy('title', 'asc'));
 
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      if (snapshot.empty) {
-        // Seed initial data if Firestore is empty AND user is admin
-        if (user?.role === 'admin') {
-            const seedStatusRef = doc(db, 'settings', 'gallery_seed_status');
-            const seedStatus = await getDoc(seedStatusRef);
-            
-            if (!seedStatus.exists() || !seedStatus.data().seeded) {
-                const batch = writeBatch(db);
-                initialGallery.forEach((item) => {
-                    const newDocRef = doc(galleryCol);
-                    batch.set(newDocRef, {
-                        ...item,
-                        id: newDocRef.id
-                    });
-                });
-                // Mark as seeded
-                batch.set(seedStatusRef, { seeded: true, timestamp: new Date().toISOString() });
-                await batch.commit();
-            } else {
-                // Already seeded once, so if it's empty, it means admin deleted everything.
-                setGalleryItems([]);
-                setLoading(false);
-            }
-        } else {
-            setGalleryItems([]);
-            setLoading(false);
-        }
-      } else {
-        const galleryList = snapshot.docs.map(doc => ({
-            ...doc.data(),
-            id: doc.id
-        } as GalleryItem));
-        setGalleryItems(galleryList);
-        setLoading(false);
-      }
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const galleryList = snapshot.docs.map(doc => ({
+          ...doc.data(),
+          id: doc.id
+      } as GalleryItem));
+      setGalleryItems(galleryList);
+      setLoading(false);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, path);
       setLoading(false);
@@ -140,8 +87,24 @@ export function GalleryProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const clearAllGallery = async () => {
+    const path = 'gallery';
+    try {
+      const batch = writeBatch(db);
+      galleryItems.forEach(item => {
+        batch.delete(doc(db, 'gallery', item.id));
+      });
+      const seedStatusRef = doc(db, 'settings', 'gallery_seed_status');
+      batch.set(seedStatusRef, { seeded: true, timestamp: new Date().toISOString() });
+      
+      await batch.commit();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, path);
+    }
+  };
+
   return (
-    <GalleryContext.Provider value={{ galleryItems, addGalleryItem, updateGalleryItem, removeGalleryItem, loading }}>
+    <GalleryContext.Provider value={{ galleryItems, addGalleryItem, updateGalleryItem, removeGalleryItem, clearAllGallery, loading }}>
       {children}
     </GalleryContext.Provider>
   );

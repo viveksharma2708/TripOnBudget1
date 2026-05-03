@@ -43,6 +43,7 @@ type PackageContextType = {
   addPackage: (pkg: Omit<Package, 'id'>) => Promise<void>;
   updatePackage: (id: string, pkg: Omit<Package, 'id'>) => Promise<void>;
   removePackage: (id: string) => Promise<void>;
+  clearAllPackages: () => Promise<void>;
   loading: boolean;
 };
 
@@ -59,43 +60,13 @@ export function PackageProvider({ children }: { children: ReactNode }) {
     const packagesCol = collection(db, path);
     const q = query(packagesCol, orderBy('price', 'asc'));
 
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      if (snapshot.empty) {
-        // Seed initial data if Firestore is empty AND user is admin
-        // FIX: Check a sentinel document to avoid re-seeding if the admin intentionally deleted everything
-        if (user?.role === 'admin') {
-          const seedStatusRef = doc(db, 'settings', 'package_seed_status');
-          const seedStatus = await getDoc(seedStatusRef);
-          
-          if (!seedStatus.exists() || !seedStatus.data().seeded) {
-            const batch = writeBatch(db);
-            initialPackages.forEach((pkg) => {
-              const newDocRef = doc(packagesCol);
-              batch.set(newDocRef, {
-                ...pkg,
-                id: newDocRef.id
-              });
-            });
-            // Mark as seeded
-            batch.set(seedStatusRef, { seeded: true, timestamp: new Date().toISOString() });
-            await batch.commit();
-          } else {
-            // Already seeded once, so if it's empty, it means admin deleted everything. Don't re-seed.
-            setPackages([]);
-            setLoading(false);
-          }
-        } else {
-          setPackages([]);
-          setLoading(false);
-        }
-      } else {
-        const packagesList = snapshot.docs.map(doc => ({
-          ...doc.data(),
-          id: doc.id
-        } as Package));
-        setPackages(packagesList);
-        setLoading(false);
-      }
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const packagesList = snapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id
+      } as Package));
+      setPackages(packagesList);
+      setLoading(false);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, path);
       setLoading(false);
@@ -131,8 +102,25 @@ export function PackageProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const clearAllPackages = async () => {
+    const path = 'packages';
+    try {
+      const batch = writeBatch(db);
+      packages.forEach(pkg => {
+        batch.delete(doc(db, 'packages', pkg.id));
+      });
+      // Also mark as seeded so it doesn't try to auto-seed (even though I disabled it, it's good practice)
+      const seedStatusRef = doc(db, 'settings', 'package_seed_status');
+      batch.set(seedStatusRef, { seeded: true, timestamp: new Date().toISOString() });
+      
+      await batch.commit();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, path);
+    }
+  };
+
   return (
-    <PackageContext.Provider value={{ packages, addPackage, updatePackage, removePackage, loading }}>
+    <PackageContext.Provider value={{ packages, addPackage, updatePackage, removePackage, clearAllPackages, loading }}>
         {children}
     </PackageContext.Provider>
   );

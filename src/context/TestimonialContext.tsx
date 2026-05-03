@@ -45,42 +45,13 @@ export function TestimonialProvider({ children }: { children: ReactNode }) {
     const testimonialsCol = collection(db, path);
     const q = query(testimonialsCol, orderBy('id', 'asc'));
 
-    const unsubscribe = onSnapshot(q, async (snapshot) => {
-      if (snapshot.empty) {
-        // Seed initial data if Firestore is empty AND user is admin
-        if (user?.role === 'admin') {
-          const seedStatusRef = doc(db, 'settings', 'testimonial_seed_status');
-          const seedStatus = await getDoc(seedStatusRef);
-          
-          if (!seedStatus.exists() || !seedStatus.data().seeded) {
-            const batch = writeBatch(db);
-            initialTestimonials.forEach((t) => {
-              const newDocRef = doc(testimonialsCol);
-              batch.set(newDocRef, {
-                ...t,
-                id: newDocRef.id
-              });
-            });
-            // Mark as seeded
-            batch.set(seedStatusRef, { seeded: true, timestamp: new Date().toISOString() });
-            await batch.commit();
-          } else {
-            // Already seeded once, so if it's empty, it means admin deleted everything. Don't re-seed.
-            setTestimonials([]);
-            setLoading(false);
-          }
-        } else {
-          setTestimonials([]);
-          setLoading(false);
-        }
-      } else {
-        const testimonialsList = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        } as Testimonial));
-        setTestimonials(testimonialsList);
-        setLoading(false);
-      }
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const testimonialsList = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Testimonial));
+      setTestimonials(testimonialsList);
+      setLoading(false);
     }, (error) => {
       handleFirestoreError(error, OperationType.LIST, path);
       setLoading(false);

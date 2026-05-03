@@ -1,79 +1,53 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Top-level admin check by email
-    function isEmailAdmin() {
-      return request.auth != null && (
-        request.auth.token.email == "vivek5656sharma@gmail.com" || 
-        request.auth.token.email == "padatvivek2@gmail.com"
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.uid == "DKdSCSIlmZOZBRIrNymj13oOXxZ2" ||
+        request.auth.token.email == "vivek5656sharma@gmail.com"
       );
     }
 
-    // Role check from document. Only used if not email admin.
-    function isDocAdmin() {
-      return request.auth != null && 
-             exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
+    // Default deny and admin access
+    match /{document=**} {
+      allow read, write: if isSignedIn() && (
+        request.auth.uid == "DKdSCSIlmZOZBRIrNymj13oOXxZ2" || 
+        request.auth.token.email == "vivek5656sharma@gmail.com"
+      );
     }
-
-    function isAdmin() {
-      return isEmailAdmin() || isDocAdmin();
-    }
-
-    // Check if user is logged in AND verified
-    function isVerified() {
-      return request.auth != null && (request.auth.token.email_verified == true || isEmailAdmin());
-    }
-
-    // Collection: Users
-    match /users/{userId} {
-      // Allow user to get their own doc, or admins to get any doc
-      allow get: if request.auth != null && (request.auth.uid == userId || isAdmin());
-      
-      // Allow admins to list users. We don't use "read" here to be explicit.
-      allow list: if isAdmin();
-      
-      // Allow user to write their own doc, or admins to write/delete any doc
-      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
-    }
-
-    // Collection: Packages, Gallery, Testimonials
+    
+    // Explicit collection rules for non-admins
     match /packages/{docId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isSignedIn() && (request.auth.uid == "DKdSCSIlmZOZBRIrNymj13oOXxZ2" || request.auth.token.email == "vivek5656sharma@gmail.com");
     }
     match /gallery/{docId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isSignedIn() && (request.auth.uid == "DKdSCSIlmZOZBRIrNymj13oOXxZ2" || request.auth.token.email == "vivek5656sharma@gmail.com");
     }
     match /testimonials/{docId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isSignedIn() && (request.auth.uid == "DKdSCSIlmZOZBRIrNymj13oOXxZ2" || request.auth.token.email == "vivek5656sharma@gmail.com");
     }
-
-    // Collection: Settings
     match /settings/{docId} {
-      allow read, write: if isAdmin();
+      allow read: if true;
+      allow write: if isSignedIn() && (request.auth.uid == "DKdSCSIlmZOZBRIrNymj13oOXxZ2" || request.auth.token.email == "vivek5656sharma@gmail.com");
     }
-
-    // Collection: Bookings
-    match /bookings/{docId} {
-      allow read: if isVerified() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow create: if isVerified() && request.resource.data.userId == request.auth.uid;
-      allow update: if isVerified() && (
-        isAdmin() || 
-        (resource.data.userId == request.auth.uid && 
-         request.resource.data.status != "Completed" && 
-         request.resource.data.status == resource.data.status)
-      );
-      allow delete: if isAdmin();
-    }
-
-    // Collection: Inquiries
     match /inquiries/{docId} {
-      allow read: if isAdmin();
       allow create: if true;
-      allow update, delete: if isAdmin();
+      allow read, delete: if isSignedIn() && (request.auth.uid == "DKdSCSIlmZOZBRIrNymj13oOXxZ2" || request.auth.token.email == "vivek5656sharma@gmail.com");
+    }
+    match /bookings/{docId} {
+      allow read, create: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid || request.auth.token.email == "vivek5656sharma@gmail.com" || request.auth.uid == "DKdSCSIlmZOZBRIrNymj13oOXxZ2");
+      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || request.auth.token.email == "vivek5656sharma@gmail.com" || request.auth.uid == "DKdSCSIlmZOZBRIrNymj13oOXxZ2");
+    }
+    match /users/{userId} {
+      allow read: if isSignedIn() && request.auth.uid == userId;
+      allow create, update: if isSignedIn() && request.auth.uid == userId;
     }
   }
 }

@@ -75,8 +75,17 @@ async function startServer() {
         console.log(`[Email] Success: Confirmation sent to ${email}`);
         res.status(200).json({ success: true });
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         console.error("[Email] Error sending email:", error);
-        res.status(500).json({ error: "Failed to send email", details: error instanceof Error ? error.message : String(error) });
+        
+        if (errorMessage.includes('Application-specific password required')) {
+          return res.status(500).json({ 
+            error: "Authentication failed", 
+            details: "Gmail requires an 'App Password'. Please generate one in your Google Security settings and update SMTP_PASS." 
+          });
+        }
+        
+        res.status(500).json({ error: "Failed to send email", details: errorMessage });
       }
     });
 
