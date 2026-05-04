@@ -6,16 +6,13 @@ export async function chatWithAI(message: string, packages: Package[], chatHisto
     const apiKey = process.env.GEMINI_API_KEY;
     
     if (!apiKey || apiKey === 'undefined' || apiKey === '') {
-      console.warn("[AI] Gemini API key NOT FOUND in environment.");
+      console.warn("[AI] Gemini API key not found. Using fallback message.");
       return "Hi there! Our AI assistant is currently in light sleep mode. While I wake it up, feel free to browse our packages or message us directly on WhatsApp for instant support!";
     }
 
-    // Safe debug check
-    console.log(`[AI] Service initializing with key (length: ${apiKey.length})`);
-
     const ai = new GoogleGenAI({ apiKey });
     
-    // Limit package context size to avoid token limits
+    // Limit package context to essential info for token efficiency
     const packagesContext = packages.slice(0, 15).map(pkg => ({
       title: pkg.title,
       location: pkg.location,
@@ -60,17 +57,17 @@ export async function chatWithAI(message: string, packages: Package[], chatHisto
 
     return response.text;
   } catch (error) {
-    console.error("[AI Service Error]:", error);
+    console.error("[AI Chat Error]:", error);
     const errorMessage = error instanceof Error ? error.message : String(error);
     
-    if (errorMessage.includes("API_KEY_INVALID") || errorMessage.includes("401")) {
-      return "Our AI concierge is undergoing a quick security check. Please contact our human team on WhatsApp for immediate help!";
+    if (errorMessage.includes("401") || errorMessage.includes("key")) {
+      return "I'm having a little trouble with my access keys. Please reach out to us on WhatsApp (+91 78279 16794) for immediate assistance!";
     }
 
     if (errorMessage.includes("quota") || errorMessage.includes("429")) {
-      return "Wow, a lot of travelers are planning today! I'm taking a 30-second breather. Please try again or reach us on WhatsApp.";
+      return "Wow, lots of travelers are planning today! I'm taking a short breather. Please try again in 30 seconds or message us on WhatsApp.";
     }
     
-    return "I'm having a slight connection interruption. Our team at TripOnBudget is ready to help you on WhatsApp (+91 78279 16794) right now!";
+    return "I'm having a little trouble connecting right now. Please try again or reach out to us on WhatsApp (+91 78279 16794) for immediate help!";
   }
 }
