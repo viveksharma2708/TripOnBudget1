@@ -43,13 +43,15 @@ export async function chatWithAI(message: string, packages: Package[], chatHisto
     `;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-flash-latest",
       contents: [
         ...chatHistory,
         { role: 'user', parts: [{ text: message }] }
       ],
       config: {
         systemInstruction: systemInstruction,
+        temperature: 0.7,
+        topP: 0.95,
       }
     });
 
