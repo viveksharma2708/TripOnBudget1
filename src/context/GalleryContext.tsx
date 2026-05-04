@@ -45,7 +45,29 @@ export function GalleryProvider({ children }: { children: ReactNode }) {
     const galleryCol = collection(db, path);
     const q = query(galleryCol, orderBy('title', 'asc'));
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      if (snapshot.empty) {
+        // Auto-seed if empty
+        const defaultItems = [
+          { type: 'image', title: 'Kedarnath Temple', url: 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&q=80&w=1200' },
+          { type: 'image', title: 'Varanasi Ghats', url: 'https://images.unsplash.com/photo-1561359313-0639aad49ca6?auto=format&fit=crop&q=80&w=1200' },
+          { type: 'image', title: 'Goa Beaches', url: 'https://images.unsplash.com/photo-1512343879784-a960bf40e7f2?auto=format&fit=crop&q=80&w=1200' },
+          { type: 'image', title: 'Rajasthan Palace', url: 'https://images.unsplash.com/photo-1599661046289-e31887846eac?auto=format&fit=crop&q=80&w=1200' },
+          { type: 'image', title: 'Himachal Treks', url: 'https://images.unsplash.com/photo-1589136142558-1834f2af9321?auto=format&fit=crop&q=80&w=1200' }
+        ];
+        
+        try {
+          const batch = writeBatch(db);
+          defaultItems.forEach(item => {
+            const newDocRef = doc(galleryCol);
+            batch.set(newDocRef, item);
+          });
+          await batch.commit();
+        } catch (e) {
+          console.error("Auto-seeding gallery failed", e);
+        }
+      }
+
       const galleryList = snapshot.docs.map(doc => ({
           ...doc.data(),
           id: doc.id

@@ -117,9 +117,12 @@ export default function ChatBot({ inline = false }: { inline?: boolean }) {
           </div>
           <div>
             <h3 className="font-bold text-gray-900 leading-none mb-1">TripOnBudget Assistant</h3>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              <p className="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Expert Concierge</p>
+            <div className="flex items-center gap-1.5 leading-none">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+              <p className="text-[10px] text-gray-500 uppercase font-black tracking-widest flex items-center gap-1">
+                AI System Online
+                <Sparkles className="w-2.5 h-2.5 text-primary-500" />
+              </p>
             </div>
           </div>
         </div>

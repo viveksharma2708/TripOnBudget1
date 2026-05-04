@@ -25,6 +25,7 @@ import Auth from './pages/Auth';
 import AdminDashboard from './pages/AdminDashboard';
 import UserDashboard from './pages/UserDashboard';
 import Gallery from './pages/Gallery';
+import NotFound from './pages/NotFound';
 
 import FloatingChat from './components/FloatingChat';
 
@@ -54,6 +55,7 @@ export default function App() {
                         <Route path="auth" element={<Auth />} />
                         <Route path="admin" element={<AdminDashboard />} />
                         <Route path="dashboard" element={<UserDashboard />} />
+                        <Route path="*" element={<NotFound />} />
                       </Route>
                     </Routes>
                   </Router>
