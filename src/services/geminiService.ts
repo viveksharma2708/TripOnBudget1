@@ -8,7 +8,6 @@ export async function chatWithAI(message: string, packages: Package[], chatHisto
     const packagesContext = packages.map(pkg => ({
       title: pkg.title,
       location: pkg.location,
-      duration: pkg.duration,
       price: pkg.price,
       description: pkg.description,
       category: pkg.category,
@@ -25,21 +24,19 @@ export async function chatWithAI(message: string, packages: Package[], chatHisto
       ${JSON.stringify(packagesContext, null, 2)}
     `;
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: [
-        ...chatHistory,
-        { role: 'user', parts: [{ text: message }] }
-      ],
+    const chat = ai.chats.create({
+      model: "gemini-flash-latest",
+      history: chatHistory,
       config: {
         systemInstruction: systemInstruction,
         temperature: 0.7,
       }
     });
 
+    const response = await chat.sendMessage(message);
     return response.text;
   } catch (error) {
     console.error("Gemini AI Error:", error);
-    return "I'm having trouble connecting right now. Please try again or reach out to us on WhatsApp!";
+    return "I'm having trouble connecting right now. Please try again or reach out to us on WhatsApp for immediate assistance!";
   }
 }
