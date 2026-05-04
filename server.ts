@@ -39,10 +39,23 @@ async function startServer() {
         const transporter = nodemailer.createTransport({
           host,
           port: parseInt(port),
-          secure: parseInt(port) === 465, // usually true for 465, false for 587
+          secure: parseInt(port) === 465,
           auth: { user, pass },
           tls: { rejectUnauthorized: false }
         });
+
+        // Test connection first
+        try {
+          await transporter.verify();
+          console.log("[Email] SMTP Connection verified successfully");
+        } catch (verifyError) {
+          console.error("[Email] SMTP Verification Failed:", verifyError);
+          return res.status(500).json({ 
+            success: false, 
+            error: "Authentication failed with email server.",
+            details: verifyError instanceof Error ? verifyError.message : String(verifyError)
+          });
+        }
 
         await transporter.sendMail({
           from: `"TripOnBudget" <${user}>`,
@@ -103,15 +116,13 @@ async function startServer() {
 
     app.listen(PORT, "0.0.0.0", () => {
       console.log(`Server started on port ${PORT}`);
-      console.log('[Startup] SMTP Configuration Check:', {
-        host: process.env.SMTP_HOST || 'MISSING',
-        port: process.env.SMTP_PORT || 'MISSING',
-        user: process.env.SMTP_USER ? 'SET' : 'MISSING',
-        pass: process.env.SMTP_PASS ? 'SET' : 'MISSING'
-      });
+      console.log('[Startup] Server is ready to handle requests');
+    }).on('error', (err) => {
+      console.error('Server failed to start:', err);
     });
   } catch (err) {
     console.error("Startup error:", err);
+    process.exit(1);
   }
 }
 
